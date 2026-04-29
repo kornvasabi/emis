@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>รายงานปัญหา (PDF)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Sarabun', sans-serif; /* ใช้ฟอนต์สารบรรณทั้งหน้า */
+            font-size: 16px;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .header h2 { margin: 0; font-size: 24px; color: #e74a3b; }
+        .header p { margin: 5px 0; font-size: 18px; }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid #000;
+            padding: 8px;
+            text-align: left;
+            vertical-align: middle;
+        }
+        th {
+            background-color: #e74a3b; /* สีแดง PDF */
+            color: white;
+            font-weight: bold;
+            text-align: center;
+        }
+        .text-center { text-align: center; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h2>รายงานสรุปปัญหาของระบบ (Issues Report)</h2>
+        <p>ข้อมูลตั้งแต่วันที่: <%= startDate %> ถึง <%= endDate %></p>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th width="5%">ID</th>
+                <th width="15%">วันที่</th>
+                <th width="15%">ประเภท</th>
+                <th width="30%">หัวข้อปัญหา</th>
+                <th width="15%">ผู้บันทึก</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% if (data.length > 0) { %>
+                <% data.forEach(function(item) { %>
+                    <tr>
+                        <td class="text-center"><%= item.id %></td>
+                        <td class="text-center"><%= item.created_date %></td>
+                        <td><%= item.type_name %></td>
+                        <td><%= item.title %></td>
+                        <td><%= item.user_fullname %></td>
+                    </tr>
+                <% }); %>
+            <% } else { %>
+                <tr>
+                    <td colspan="5" class="text-center">-- ไม่พบข้อมูลในช่วงเวลาที่เลือก --</td>
+                </tr>
+            <% } %>
+        </tbody>
+    </table>
+
+</body>
+</html>

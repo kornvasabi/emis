@@ -1,0 +1,59 @@
+<ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
+
+    <a class="sidebar-brand d-flex align-items-center justify-content-center" href="<%= baseUrl %>/dashboard">
+        <div class="sidebar-brand-text mx-3">WW-EMIS</div>
+    </a>
+    <hr class="sidebar-divider my-0">
+
+    <% dynamicMenus.forEach(function(menu) { %>
+
+        <% if (menu.link !== '#' && menu.children.length === 0) { %>
+            <% let menuPath = '/' + menu.link.replace('.php', ''); %>
+            
+            <li class="nav-item <%= currentPath === menuPath ? 'active' : '' %>">
+                <a class="nav-link" href="<%= baseUrl %><%= menuPath %>">
+                    <i class="<%= menu.icon %>"></i>
+                    <span><%= __('menu.dashboard') %></span>
+                </a>
+            </li>
+
+        <% } else if (menu.link === '#') { %>
+            <% 
+                // เช็คก่อนว่าในบรรดาลูกๆ ในกลุ่มนี้ มีใครกำลังเปิดใช้งานอยู่ไหม? (จะส่งค่า true/false)
+                let hasActiveChild = menu.children.some(child => currentPath === '/' + child.link.replace('.php', '')); 
+            %>
+            
+            <li class="nav-item <%= hasActiveChild ? 'active' : '' %>">
+                <a class="nav-link <%= hasActiveChild ? '' : 'collapsed' %>" 
+                   href="#" 
+                   data-toggle="collapse" 
+                   data-target="#collapseMenu<%= menu.id %>" 
+                   aria-expanded="<%= hasActiveChild ? 'true' : 'false' %>" 
+                   aria-controls="collapseMenu<%= menu.id %>">
+                    <i class="<%= menu.icon %>"></i>
+                    <span><%= menu.menu_name %></span>
+                </a>
+                
+                <div id="collapseMenu<%= menu.id %>" class="collapse <%= hasActiveChild ? 'show' : '' %>" aria-labelledby="heading<%= menu.id %>" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <% menu.children.forEach(function(child) { %>
+                            <% let childPath = '/' + child.link.replace('.php', ''); %>
+                            
+                            <a class="collapse-item <%= currentPath === childPath ? 'active' : '' %>" 
+                               href="<%= baseUrl %><%= childPath %>">
+                                <%= child.menu_name %>
+                            </a>
+                        <% }); %>
+                    </div>
+                </div>
+            </li>
+        <% } %>
+
+        <hr class="sidebar-divider d-none d-md-block">
+    <% }); %>
+	
+	<div class="text-center d-none d-md-inline">
+		<button class="rounded-circle border-0" id="sidebarToggle" title="ซ่อน/ขยาย เมนู"></button>
+	</div>
+</ul>
+

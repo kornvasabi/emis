@@ -1,0 +1,363 @@
+<%- include('layouts/header') %>
+<%- include('layouts/sidebar') %>
+<%- include('layouts/topbar') %>
+
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800"><i class="fas fa-cogs"></i> บันทึกการทำงานเครื่องจักร/เบรกดาวน์</h1>
+        <button class="btn btn-primary shadow-sm" id="btnAddTrans">
+            <i class="fas fa-plus fa-sm text-white-50"></i> บันทึกข้อมูลประจำวัน
+        </button>
+    </div>
+    
+    <div class="card shadow mb-4">
+        <div class="card-body py-3">
+            <form id="searchForm" class="form-inline d-flex justify-content-center justify-content-md-start">
+                <label class="font-weight-bold mr-2">ตั้งแต่วันที่:</label>
+                <input type="date" class="form-control mr-3 mb-2 mb-md-0" id="searchStartDate" name="startDate">
+                
+                <label class="font-weight-bold mr-2">ถึงวันที่:</label>
+                <input type="date" class="form-control mr-3 mb-2 mb-md-0" id="searchEndDate" name="endDate">
+                
+                <button type="submit" class="btn btn-primary mb-2 mb-md-0"><i class="fas fa-search"></i> ค้นหา</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow mb-4 border-left-primary d-none d-lg-block">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" id="transTable" width="100%" cellspacing="0">
+                    <thead class="bg-light text-center">
+                        <tr>
+                            <th>วันที่</th>
+                            <th>สาขา</th>
+                            <th>ชื่อเครื่องจักร</th>
+                            <th>จำนวน</th>
+                            <th class="text-success">ชม.ทำงาน</th>
+                            <th class="text-danger">ชม.เบรกดาวน์</th>
+                            <th>หมายเหตุ</th>
+                            <th>จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-block d-lg-none">
+        <h6 class="font-weight-bold text-primary mb-3"><i class="fas fa-list"></i> รายการบันทึกทั้งหมด</h6>
+        <div class="row" id="transListMobile"></div>
+    </div>
+</div>
+
+<div class="modal fade" id="addTransModal" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-gradient-primary text-white">
+                <h5 class="modal-title font-weight-bold"><i class="fas fa-edit"></i> บันทึกข้อมูลเครื่องจักรประจำวัน</h5>
+                <button type="button" class="close text-white" data-dismiss="modal">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="addTransForm">
+                <div class="modal-body p-4">
+                    <div class="row bg-light p-3 rounded mb-3">
+                        <div class="col-md-6 form-group mb-md-0">
+                            <label class="font-weight-bold text-dark">วันที่บันทึก <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control border-primary" id="formDate" name="record_date" required>
+                        </div>
+                        <div class="col-md-6 form-group mb-0">
+                            <label class="font-weight-bold text-dark">เลือกสาขา <span class="text-danger">*</span></label>
+                            <select class="form-control border-primary" id="formBranch" name="branch_id" required 
+                                <%= typeof accessLevel !== 'undefined' && accessLevel === 3 ? 'readonly style="pointer-events: none; background-color: #eaecf4;"' : '' %>>
+                                <% if (typeof accessLevel !== 'undefined' && accessLevel !== 3) { %>
+                                    <option value="">-- เลือกสาขา --</option>
+                                <% } %>
+                                <% if (typeof branches !== 'undefined') { %>
+                                    <% branches.forEach(function(b) { %>
+                                        <option value="<%= b.id %>" <%= typeof accessLevel !== 'undefined' && accessLevel === 3 ? 'selected' : '' %>>
+                                            <%= b.branch_name %>
+                                        </option>
+                                    <% }); %>
+                                <% } %>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead class="thead-light text-center">
+                                <tr>
+                                    <th width="30%">เครื่องจักร <span class="text-danger">*</span></th>
+                                    <th width="15%">จำนวน (เครื่อง) <span class="text-danger">*</span></th>
+                                    <th width="15%">ชม. ทำงาน <span class="text-danger">*</span></th>
+                                    <th width="15%">ชม. เบรกดาวน์</th>
+                                    <th width="20%">หมายเหตุ</th>
+                                    <th width="5%">ลบ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="machineRows">
+                                </tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-info" id="btnAddRow"><i class="fas fa-plus"></i> เพิ่มแถวเครื่องจักร</button>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> บันทึกข้อมูลทั้งหมด</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editTransModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-gradient-warning text-dark">
+                <h5 class="modal-title font-weight-bold"><i class="fas fa-pen"></i> แก้ไขรายการ</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="editTransForm">
+                <div class="modal-body p-4">
+                    <input type="hidden" id="editTransId">
+                    <div class="alert alert-info">
+                        <strong>วันที่:</strong> <span id="editDateText"></span><br>
+                        <strong>เครื่องจักร:</strong> <span id="editMachineText"></span>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 form-group">
+                            <label>จำนวนเครื่อง <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="editQty" name="machine_qty" required>
+                        </div>
+                        <div class="col-md-4 form-group">
+                            <label>ชม. ทำงาน <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" class="form-control" id="editWorkHrs" name="working_hours" required>
+                        </div>
+                        <div class="col-md-4 form-group">
+                            <label>ชม. เบรกดาวน์</label>
+                            <input type="number" step="0.01" class="form-control" id="editBreakHrs" name="breakdown_hours">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>หมายเหตุ</label>
+                        <input type="text" class="form-control" id="editRemarks" name="remarks">
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn btn-warning"><i class="fas fa-save"></i> อัปเดตข้อมูล</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<%- include('layouts/footer') %>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+$(document).ready(function() {
+    // 🟢 3. ดักจับการกดปุ่ม "ค้นหา"
+    $('#searchForm').submit(function(e) {
+        e.preventDefault();
+        loadData(); // สั่งให้ดึงข้อมูลใหม่
+    });
+
+    const allMachines = <%- JSON.stringify(typeof machines !== 'undefined' ? machines : []) %>;
+
+    function getMachineOptionsHtml(branchId) {
+        let options = '<option value="">-- เลือกเครื่องจักร --</option>';
+        if (!branchId) return options;
+        let filtered = allMachines.filter(m => m.branch_id == branchId);
+        filtered.forEach(m => {
+            options += `<option value="${m.id}">${m.machine_name} (${m.machine_type})</option>`;
+        });
+        return options;
+    }
+
+    function addMachineRow() {
+        let currentBranch = $('#formBranch').val();
+        let optionsHtml = getMachineOptionsHtml(currentBranch);
+
+        let tr = `
+            <tr>
+                <td><select class="form-control machine-select" name="machine_id[]" required>${optionsHtml}</select></td>
+                <td><input type="text" class="form-control text-center" name="machine_qty[]" required placeholder="เช่น 3 หรือ 40+26" value="1"></td>
+                <td><input type="number" step="0.01" class="form-control text-center text-success" name="working_hours[]" required placeholder="0.00"></td>
+                <td><input type="number" step="0.01" class="form-control text-center text-danger" name="breakdown_hours[]" placeholder="0.00"></td>
+                <td><input type="text" class="form-control" name="remarks[]" placeholder="ระบุสาเหตุ..."></td>
+                <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-outline-danger btn-remove-row" tabindex="-1"><i class="fas fa-times"></i></button>
+                </td>
+            </tr>
+        `;
+        $('#machineRows').append(tr);
+    }
+
+    $('#formBranch').on('change', function() {
+        $('#machineRows').empty();
+        addMachineRow(); 
+    });
+
+    $('#btnAddRow').click(function() { addMachineRow(); });
+
+    $(document).on('click', '.btn-remove-row', function() {
+        if ($('#machineRows tr').length > 1) {
+            $(this).closest('tr').remove();
+        } else {
+            Swal.fire('คำเตือน', 'ต้องมีข้อมูลเครื่องจักรอย่างน้อย 1 รายการ', 'warning');
+        }
+    });
+
+    // 🟢 1. ตั้งค่าวางวันที่ปัจจุบันให้ช่องค้นหาตอนเปิดหน้าเว็บ
+    const todayStr = new Date().toISOString().split('T')[0];
+    $('#searchStartDate').val(todayStr);
+    $('#searchEndDate').val(todayStr);
+
+    function loadData() {
+        const startDate = $('#searchStartDate').val();
+        const endDate = $('#searchEndDate').val();
+
+        // ส่งตัวแปรพ่วงท้าย URL ไปด้วย (Query String)
+        $.get(`<%= baseUrl %>/api/machine_trans?startDate=${startDate}&endDate=${endDate}`, function(response) {
+            if (response.status === 'success') {
+                let rows = '';
+                let mobileCards = ''; 
+
+                response.data.forEach(t => {
+                    let transData = encodeURIComponent(JSON.stringify(t));
+                    
+                    rows += `
+                        <tr>
+                            <td class="text-center">${t.display_date}</td>
+                            <td class="text-center"><span class="badge badge-info">${t.branch_name}</span></td>
+                            <td class="font-weight-bold">${t.machine_name}</td>
+                            <td class="text-center text-primary font-weight-bold">${t.machine_qty || '-'}</td>
+                            <td class="text-center font-weight-bold text-success">${parseFloat(t.working_hours).toFixed(2)}</td>
+                            <td class="text-center font-weight-bold text-danger">${parseFloat(t.breakdown_hours).toFixed(2)}</td>
+                            <td><small class="text-muted">${t.remarks || '-'}</small></td>
+                            <td class="text-center" style="white-space: nowrap;">
+                                <button class="btn btn-sm btn-warning btn-edit" data-info="${transData}"><i class="fas fa-pen"></i></button>
+                                <button class="btn btn-sm btn-danger btn-delete" data-id="${t.id}"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                    `;
+
+                    mobileCards += `
+                        <div class="col-12 mb-3">
+                            <div class="card border-left-primary shadow-sm h-100">
+                                <div class="card-body py-3">
+                                    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
+                                        <span class="font-weight-bold"><i class="far fa-calendar-alt text-primary"></i> ${t.display_date}</span>
+                                        <span class="badge badge-info">${t.branch_name}</span>
+                                    </div>
+                                    <h6 class="font-weight-bold text-dark">${t.machine_name} <span class="text-primary">(จำนวน: ${t.machine_qty || '-'})</span></h6>
+                                    <div class="row text-center mt-2">
+                                        <div class="col-6 border-right">
+                                            <small class="text-muted">ทำงาน (ชม.)</small><br>
+                                            <span class="h5 font-weight-bold text-success">${parseFloat(t.working_hours).toFixed(2)}</span>
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted">เบรกดาวน์</small><br>
+                                            <span class="h5 font-weight-bold text-danger">${parseFloat(t.breakdown_hours).toFixed(2)}</span>
+                                        </div>
+                                    </div>
+                                    <div class="text-sm text-muted mt-2 text-center">หมายเหตุ: ${t.remarks || '-'}</div>
+                                    <div class="text-right border-top pt-2 mt-2">
+                                        <button class="btn btn-sm btn-outline-warning btn-edit" data-info="${transData}"><i class="fas fa-pen"></i></button>
+                                        <button class="btn btn-sm btn-outline-danger btn-delete" data-id="${t.id}"><i class="fas fa-trash"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                if ($.fn.DataTable.isDataTable('#transTable')) { $('#transTable').DataTable().clear().destroy(); }
+                $('#transTableBody').html(rows);
+                $('#transTable').DataTable({ language: { url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/th.json' }, order: [[0, 'desc']] });
+                $('#transListMobile').html(mobileCards || '<div class="col-12 text-center text-muted py-4">ไม่พบข้อมูล</div>');
+            }
+        });
+    }
+
+    loadData();
+
+    $('#btnAddTrans').click(function() {
+        $('#addTransForm')[0].reset();
+        document.getElementById('formDate').valueAsDate = new Date();
+        $('#formBranch').trigger('change'); 
+        $('#addTransModal').modal('show');
+    });
+
+    $('#addTransForm').submit(function(e) {
+        e.preventDefault();
+        let btn = $(this).find('button[type="submit"]');
+        let originalText = btn.html();
+        btn.html('<i class="fas fa-spinner fa-spin"></i> กำลังบันทึก...').prop('disabled', true);
+
+        $.post('<%= baseUrl %>/api/machine_trans/add', $(this).serialize(), function(res) {
+            if(res.status === 'success') {
+                Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', showConfirmButton: false, timer: 1500 });
+                $('#addTransModal').modal('hide');
+                loadData(); 
+            } else {
+                Swal.fire('ข้อผิดพลาด', res.message, 'warning');
+            }
+        }).fail(() => Swal.fire('Error', 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้', 'error'))
+          .always(() => btn.html(originalText).prop('disabled', false));
+    });
+
+    $(document).on('click', '.btn-edit', function() {
+        let data = JSON.parse(decodeURIComponent($(this).data('info')));
+        $('#editTransId').val(data.id);
+        $('#editDateText').text(data.display_date);
+        $('#editMachineText').text(data.machine_name);
+        $('#editQty').val(data.machine_qty);
+        $('#editWorkHrs').val(data.working_hours);
+        $('#editBreakHrs').val(data.breakdown_hours);
+        $('#editRemarks').val(data.remarks);
+        $('#editTransModal').modal('show');
+    });
+
+    $('#editTransForm').submit(function(e) {
+        e.preventDefault();
+        let id = $('#editTransId').val();
+        $.post(`<%= baseUrl %>/api/machine_trans/update/${id}`, $(this).serialize(), function(res) {
+            if(res.status === 'success') {
+                Swal.fire({ icon: 'success', title: 'อัปเดตสำเร็จ', showConfirmButton: false, timer: 1500 });
+                $('#editTransModal').modal('hide');
+                loadData(); 
+            }
+        });
+    });
+
+    $(document).on('click', '.btn-delete', function() {
+        let id = $(this).data('id');
+        Swal.fire({
+            title: 'ยืนยันการยกเลิก?',
+            text: "ข้อมูลนี้จะถูกลบออกจากระบบ",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'ใช่, ยกเลิก!',
+            cancelButtonText: 'ปิด'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.post(`<%= baseUrl %>/api/machine_trans/delete/${id}`, function(res) {
+                    if(res.status === 'success') {
+                        Swal.fire('ลบสำเร็จ!', res.message, 'success');
+                        loadData(); 
+                    }
+                });
+            }
+        });
+    });
+});
+</script>

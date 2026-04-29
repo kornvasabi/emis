@@ -1,0 +1,544 @@
+<%- include('./layouts/header') %>
+<%- include('./layouts/sidebar') %>
+
+<div id="content-wrapper" class="d-flex flex-column">
+    <div id="content">
+
+        <%- include('./layouts/topbar') %>
+
+        <div class="container-fluid">
+
+            <h1 class="h3 mb-4 text-gray-800"><%= __('user_list.page_title') %></h1>
+            
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-users"></i> <%= __('user_list.card_title') %></h6>
+                    <% if (permission && permission.can_add === 1) { %>
+                        <button class="btn btn-sm btn-success shadow-sm" data-toggle="modal" data-target="#addUserModal">
+                            <i class="fas fa-plus fa-sm text-white-50"></i> <%= __('action.add') %>
+                        </button>
+                    <% } %>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover" id="usersTable" width="100%" cellspacing="0" style="visibility: hidden;">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th width="5%" class="text-center"><%= __('user_list.col_id') %></th>
+                                    <th><%= __('user_list.col_username') %></th>
+                                    <th><%= __('user_list.col_fullname') %></th>
+                                    <th><%= __('user_list.col_group') %></th>
+                                    <th><%= __('user_list.col_branch') %></th>
+                                    <th><%= __('user_list.col_dept') %></th>
+                                    <th class="text-center"><%= __('user_list.col_expires') %></th>
+                                    <th class="text-center"><%= __('user_list.col_status') %></th>
+                                    <% if (permission && (permission.can_edit === 1 || permission.can_delete === 1)) { %>
+                                        <th width="15%" class="text-center"><%= __('user_list.col_actions') %></th>
+                                    <% } %>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% if (users && users.length > 0) { %>
+                                    <% users.forEach(function(user) { %>
+                                        <tr>
+                                            <td class="text-center"><%= user.id %></td>
+                                            <td><%= user.username %></td>
+                                            <td><%= user.fullname %></td>
+                                            <td><%= user.group_name || '-' %></td>
+                                            <td><%= user.branch_name || '-' %></td>
+                                            <td><%= user.dept_name || '-' %></td>
+                                            
+                                            <td class="text-center">
+                                                <% if (user.expires_at) { %>
+                                                    <% 
+                                                        let d = new Date(user.expires_at);
+                                                        let now = new Date();
+                                                        let day = String(d.getDate()).padStart(2, '0');
+                                                        let month = String(d.getMonth() + 1).padStart(2, '0');
+                                                        let year = d.getFullYear() + 543;
+                                                        let time = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+                                                        let textClass = (now > d) ? 'text-danger font-weight-bold' : 'text-primary';
+                                                    %>
+                                                    <small class="<%= textClass %>"><%= day %>/<%= month %>/<%= year %> <%= time %></small>
+                                                <% } else { %>
+                                                    <span class="text-muted"><small><%= __('user_list.no_expiry') %></small></span>
+                                                <% } %>
+                                            </td>
+
+                                            <td class="text-center">
+                                                <% if (user.force_logout === 1) { %>
+                                                    <span class="badge badge-danger"><%= __('user_list.status_suspended') %></span>
+                                                <% } else { %>
+                                                    <span class="badge badge-success"><%= __('user_list.status_normal') %></span>
+                                                <% } %>
+                                            </td>
+                                            <% if (permission && (permission.can_edit === 1 || permission.can_delete === 1)) { %>
+                                                <td class="text-center">
+                                                    <% if (permission.can_edit === 1) { %>
+                                                        <button class="btn btn-warning btn-sm btn-edit" data-id="<%= user.id %>" title="<%= __('user_list.title_edit') %>"><i class="fas fa-edit"></i></button>
+                                                    <% } %>
+                                                    <% if (permission.can_delete === 1) { %>
+                                                        <button class="btn btn-danger btn-sm btn-delete" data-id="<%= user.id %>" title="<%= __('user_list.title_delete') %>"><i class="fas fa-trash"></i></button>
+                                                    <% } %>
+                                                </td>
+                                            <% } %>
+                                        </tr>
+                                    <% }); %>
+                                <% } else { %>
+                                    <tr>
+                                        <td colspan="9" class="text-center"><%= __('user_list.empty_no_users') %></td>
+                                    </tr>
+                                <% } %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        </div>
+    </div>
+    <div class="modal fade" id="addUserModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <form id="formAddUser">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title"><i class="fas fa-user-plus"></i> <%= __('action.add') %></h5>
+                        <button class="close text-white" type="button" data-dismiss="modal" aria-label="<%= __('action.close') %>">
+                            <span aria-hidden="true">×</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6 form-group">
+                                <label><%= __('form.username') %> <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="username" required>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label><%= __('form.password') %> <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control" name="password" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-8 form-group">
+                                <label><%= __('form.fullname') %> <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="fullname" required>
+                            </div>
+                            <div class="col-md-4 form-group">
+                                <label class="text-warning font-weight-bold"><i class="fas fa-clock"></i> <%= __('user_list.expires_label') %></label>
+                                <input type="datetime-local" class="form-control border-warning" name="expires_at">
+                                <small class="text-muted"><%= __('user_list.expires_hint') %></small>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        <h6 class="font-weight-bold text-primary"><%= __('form.permissions') %></h6>
+                        <div class="row">
+                            <div class="col-md-4 form-group">
+                                <label><%= __('form.usergroup') %></label>
+                                <select class="form-control" name="group_id">
+                                    <option value=""><%= __('form.selectno') %></option>
+                                    <% groups.forEach(function(g) { %>
+                                        <option value="<%= g.id %>"><%= g.group_name %></option>
+                                    <% }); %>
+                                </select>
+                            </div>
+                            <div class="col-md-4 form-group">
+                                <label><%= __('form.locats') %></label>
+                                <select class="form-control" name="branch_id">
+                                    <option value=""><%= __('form.selectno') %></option>
+                                    <% branches.forEach(function(b) { %>
+                                        <option value="<%= b.id %>"><%= b.branch_name %></option>
+                                    <% }); %>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-12 form-group mt-2">
+                                <label class="font-weight-bold text-info"><i class="fas fa-map-marked-alt"></i> <%= __('user_list.secondary_branches_label') %></label>
+                                <select class="form-control select2-multiple" name="accessible_branches" multiple="multiple" style="width: 100%;">
+                                    <% branches.forEach(function(b) { %>
+                                        <option value="<%= b.id %>"><%= b.branch_code %> : <%= b.branch_name %></option>
+                                    <% }); %>
+                                </select>
+                            </div>
+
+                            <div class="col-md-4 form-group">
+                                <label><%= __('form.department') %></label>
+                                <select class="form-control" name="dept_id">
+                                    <option value=""><%= __('form.selectno') %></option>
+                                    <% departments.forEach(function(d) { %>
+                                        <option value="<%= d.id %>"><%= d.dept_name %></option>
+                                    <% }); %>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" type="button" data-dismiss="modal"><%= __('action.cancel') %></button>
+                        <button type="submit" class="btn btn-success"><%= __('action.save') %></button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="editUserModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <form id="formEditUser">
+                    <input type="hidden" name="id" id="edit_id">
+                    
+                    <div class="modal-header bg-warning text-dark">
+                        <h5 class="modal-title"><i class="fas fa-user-edit"></i> <%= __('action.edit') %></h5>
+                        <button class="close" type="button" data-dismiss="modal" aria-label="<%= __('action.close') %>">
+                            <span aria-hidden="true">×</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6 form-group">
+                                <label><%= __('user_list.edit_username_readonly') %></label>
+                                <input type="text" class="form-control bg-light" id="edit_username" readonly>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label><%= __('user_list.new_password') %> <span class="text-muted text-sm"><%= __('user_list.leave_blank_password') %></span></label>
+                                <input type="password" class="form-control" name="password" placeholder="<%= __('user_list.password_placeholder') %>">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label><%= __('user_list.fullname_label') %> <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="fullname" id="edit_fullname" required>
+                        </div>
+                        
+                        <hr>
+                        <div class="row">
+                            <div class="col-md-3 form-group">
+                                <label><%= __('form.usergroup') %></label>
+                                <select class="form-control" name="group_id" id="edit_group_id">
+                                    <option value=""><%= __('form.selectno') %></option>
+                                    <% groups.forEach(function(g) { %> <option value="<%= g.id %>"><%= g.group_name %></option> <% }); %>
+                                </select>
+                            </div>
+                            <div class="col-md-3 form-group">
+                                <label><%= __('form.locats') %></label>
+                                <select class="form-control" name="branch_id" id="edit_branch_id">
+                                    <option value=""><%= __('form.selectno') %></option>
+                                    <% branches.forEach(function(b) { %> <option value="<%= b.id %>"><%= b.branch_name %></option> <% }); %>
+                                </select>
+                            </div>
+                            <div class="col-md-12 form-group mt-2">
+                                <label class="font-weight-bold text-info"><i class="fas fa-map-marked-alt"></i> <%= __('user_list.secondary_branches_label') %></label>
+                                <select class="form-control select2-multiple" name="accessible_branches" id="edit_accessible_branches" multiple="multiple" style="width: 100%;">
+                                    <% branches.forEach(function(b) { %>
+                                        <option value="<%= b.id %>"><%= b.branch_code %> : <%= b.branch_name %></option>
+                                    <% }); %>
+                                </select>
+                            </div>
+                            <div class="col-md-3 form-group">
+                                <label><%= __('form.department') %></label>
+                                <select class="form-control" name="dept_id" id="edit_dept_id">
+                                    <option value=""><%= __('form.selectno') %></option>
+                                    <% departments.forEach(function(d) { %> <option value="<%= d.id %>"><%= d.dept_name %></option> <% }); %>
+                                </select>
+                            </div>
+                            <div class="col-md-5 form-group">
+                                <label class="text-warning font-weight-bold"><i class="fas fa-clock"></i> <%= __('user_list.expires_label') %></label>
+                                <input type="datetime-local" class="form-control border-warning" name="expires_at" id="edit_expires_at">
+                            </div>
+                            <div class="col-md-4 form-group">
+                                <label class="text-danger font-weight-bold"><%= __('user_list.account_status') %></label>
+                                <select class="form-control border-danger" name="force_logout" id="edit_force_logout">
+                                    <option value="0"><%= __('user_list.account_normal') %></option>
+                                    <option value="1"><%= __('user_list.account_suspended_temp') %></option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" type="button" data-dismiss="modal"><%= __('action.cancel') %></button>
+                        <button type="submit" class="btn btn-warning"><%= __('action.edit') %></button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+<%- include('./layouts/footer') %>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<style>
+    .select2-container .select2-selection--multiple {
+        min-height: 38px;
+        border: 1px solid #d1d3e2;
+        border-radius: 0.35rem;
+    }
+    .select2-container--default .select2-selection--multiple .select2-selection__choice {
+        background-color: #4e73df;
+        border: none;
+        color: white;
+        padding: 5px 10px;
+        margin-top: 6px;
+    }
+    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+        color: white;
+        margin-right: 5px;
+        border-right: none; 
+        padding-right: 5px; 
+    }
+    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
+        color: #ffcccc;
+        background: transparent;
+    }
+</style>
+<script>
+    const i18n = <%- JSON.stringify({
+        noExpiry: __('user_list.no_expiry'),
+        suspended: __('user_list.status_suspended'),
+        normal: __('user_list.status_normal'),
+        deleteSwalTitle: __('user_list.delete_swal_title'),
+        deleteSwalText: __('user_list.delete_swal_text'),
+        deleteSwalConfirm: __('user_list.delete_swal_confirm'),
+        deleteSwalCancel: __('action.cancel'),
+        titleEdit: __('user_list.title_edit'),
+        titleDelete: __('user_list.title_delete'),
+        successTitle: __('msg.success_title'),
+        errorTitle: __('msg.error_title'),
+        serverError: __('msg.server_error'),
+        networkError: __('msg.network_error'),
+        select2Placeholder: __('user_list.select2_placeholder')
+    }) %>;
+
+    const strEdit = '<%= (permission && permission.can_edit === 1) ? "true" : "false" %>';
+    const strDelete = '<%= (permission && permission.can_delete === 1) ? "true" : "false" %>';
+    
+    const PERM_CAN_EDIT = (strEdit === 'true');
+    const PERM_CAN_DELETE = (strDelete === 'true');
+    
+    const HAS_ACTION_COLUMN = (PERM_CAN_EDIT || PERM_CAN_DELETE);
+
+    // 🟢 ฟังก์ชันเสริมสำหรับแปลงเวลาส่งกลับไปโชว์ในตาราง (ตอน Add/Edit ผ่าน AJAX)
+    function formatExpireDate(dateString) {
+        if (!dateString) return '<span class="text-muted"><small>' + i18n.noExpiry + '</small></span>';
+        let d = new Date(dateString);
+        let now = new Date();
+        let day = String(d.getDate()).padStart(2, '0');
+        let month = String(d.getMonth() + 1).padStart(2, '0');
+        let year = d.getFullYear() + 543;
+        let time = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+        let colorClass = now > d ? 'text-danger font-weight-bold' : 'text-primary';
+        return `<small class="${colorClass}">${day}/${month}/${year} ${time}</small>`;
+    }
+    
+    $(document).ready(function() {
+        AppTools.initDataTable('#usersTable');
+        
+        $('#addUserModal .select2-multiple').select2({
+            placeholder: i18n.select2Placeholder,
+            allowClear: true,
+            dropdownParent: $('#addUserModal')
+        });
+
+        $('#editUserModal .select2-multiple').select2({
+            placeholder: i18n.select2Placeholder,
+            allowClear: true,
+            dropdownParent: $('#editUserModal')
+        });
+
+        $('#addUserModal, #editUserModal').on('hidden.bs.modal', function () {
+            $(this).find('.select2-multiple').val(null).trigger('change');
+        });
+
+        // ================== บันทึกผู้ใช้ใหม่ ==================
+        $('#formAddUser').on('submit', function(e) {
+            e.preventDefault(); 
+            let formData = $(this).serialize(); 
+
+            $.ajax({
+                type: 'POST',
+                url: '<%= baseUrl %>/api/add_user',
+                data: formData,
+                success: function(response) {
+                    if (response.status === 'success') {
+                        $('#addUserModal').modal('hide');
+                        $('#formAddUser')[0].reset();
+                        AppTools.showModal(i18n.successTitle, response.message, 'success');
+                        
+                        let table = $('#usersTable').DataTable();
+                        let u = response.data; 
+                        
+                        let statusBadge = u.force_logout === 1 
+                            ? '<span class="badge badge-danger">' + i18n.suspended + '</span>' 
+                            : '<span class="badge badge-success">' + i18n.normal + '</span>';
+                            
+                        let expireHTML = formatExpireDate(u.expires_at); // 🟢 คำนวณวันหมดอายุ
+
+                        let actionBtns = '';
+                        if (PERM_CAN_EDIT) actionBtns += `<button class="btn btn-warning btn-sm btn-edit" data-id="${u.id}" title="${i18n.titleEdit}"><i class="fas fa-edit"></i></button> `;
+                        if (PERM_CAN_DELETE) actionBtns += `<button class="btn btn-danger btn-sm btn-delete" data-id="${u.id}" title="${i18n.titleDelete}"><i class="fas fa-trash"></i></button>`;
+                        
+                        // 🟢 เพิ่มข้อมูลเป็น 8 คอลัมน์พื้นฐาน
+                        let rowData = [
+                            u.id,
+                            u.username,
+                            u.fullname,
+                            u.group_name || '-',
+                            u.branch_name || '-',
+                            u.dept_name || '-',
+                            expireHTML,   // <--- คอลัมน์ใหม่ที่แทรกเข้ามา (คอลัมน์ที่ 6)
+                            statusBadge   // <--- คอลัมน์สถานะขยับไปที่ 7
+                        ];
+
+                        if (HAS_ACTION_COLUMN) rowData.push(actionBtns);
+
+                        let rowNode = table.row.add(rowData).draw(false).node(); 
+
+                        // 🟢 ขยับคอลัมน์ตอน Add Class (นับจาก 0)
+                        $(rowNode).find('td').eq(0).addClass('text-center'); 
+                        $(rowNode).find('td').eq(6).addClass('text-center'); // วันหมดอายุ
+                        $(rowNode).find('td').eq(7).addClass('text-center'); // สถานะ
+                        if (HAS_ACTION_COLUMN) $(rowNode).find('td').eq(8).addClass('text-center'); 
+                    } else {
+                        AppTools.showModal(i18n.errorTitle, response.message, 'warning');
+                    }
+                }
+            });
+        });
+
+        let currentRow;
+
+        // ================== ดึงข้อมูลมาแก้ไข ==================
+        $('#usersTable').on('click', '.btn-edit', function() {
+            currentRow = $(this).closest('tr');
+            let userId = $(this).data('id');
+
+            $.ajax({
+                url: '<%= baseUrl %>/api/get_user/' + userId,
+                type: 'GET',
+                success: function(res) {
+                    if (res.status === 'success') {
+                        let u = res.data;
+                        
+                        $('#edit_id').val(u.id);
+                        $('#edit_username').val(u.username);
+                        $('#edit_fullname').val(u.fullname);
+                        $('#edit_group_id').val(u.group_id);
+                        $('#edit_branch_id').val(u.branch_id); 
+                        $('#edit_dept_id').val(u.dept_id);
+                        $('#edit_force_logout').val(u.force_logout);
+
+                        // 🟢 จัดการยัดข้อมูลลงในช่อง input type="datetime-local" ให้ถูกต้อง
+                        if (u.expires_at) {
+                            let dt = new Date(u.expires_at);
+                            dt.setMinutes(dt.getMinutes() - dt.getTimezoneOffset()); // ปรับเวลาให้ตรงกับ Local (ไทย)
+                            $('#edit_expires_at').val(dt.toISOString().slice(0,16));
+                        } else {
+                            $('#edit_expires_at').val('');
+                        }
+                        
+                        if (res.mapped_branches && res.mapped_branches.length > 0) {
+                            $('#edit_accessible_branches').val(res.mapped_branches).trigger('change');
+                        } else {
+                            $('#edit_accessible_branches').val(null).trigger('change');
+                        }
+
+                        $('#formEditUser input[name="password"]').val(''); 
+                        $('#editUserModal').modal('show');
+                    } else {
+                        AppTools.showModal(i18n.errorTitle, res.message, 'error');
+                    }
+                }
+            });
+        });
+
+        // ================== บันทึกการแก้ไข ==================
+        $('#formEditUser').on('submit', function(e) {
+            e.preventDefault();
+            let formData = $(this).serialize();
+
+            $.ajax({
+                type: 'POST',
+                url: '<%= baseUrl %>/api/update_user',
+                data: formData,
+                success: function(response) {
+                    if (response.status === 'success') {
+                        $('#editUserModal').modal('hide');
+                        AppTools.showModal(i18n.successTitle, response.message, 'success');
+
+                        let table = $('#usersTable').DataTable();
+                        let u = response.data;
+                        
+                        let statusBadge = u.force_logout === 1 
+                            ? '<span class="badge badge-danger">' + i18n.suspended + '</span>' 
+                            : '<span class="badge badge-success">' + i18n.normal + '</span>';
+
+                        let expireHTML = formatExpireDate(u.expires_at); // 🟢 คำนวณวันหมดอายุ
+
+                        let actionBtns = '';
+                        if (PERM_CAN_EDIT) actionBtns += `<button class="btn btn-warning btn-sm btn-edit" data-id="${u.id}" title="${i18n.titleEdit}"><i class="fas fa-edit"></i></button> `;
+                        if (PERM_CAN_DELETE) actionBtns += `<button class="btn btn-danger btn-sm btn-delete" data-id="${u.id}" title="${i18n.titleDelete}"><i class="fas fa-trash"></i></button>`;
+                        
+                        let rowData = [
+                            u.id, 
+                            u.username, 
+                            u.fullname,
+                            u.group_name || '-', 
+                            u.branch_name || '-', 
+                            u.dept_name || '-',
+                            expireHTML,   // <--- แทรกตรงนี้
+                            statusBadge
+                        ];
+
+                        if (HAS_ACTION_COLUMN) rowData.push(actionBtns);
+
+                        table.row(currentRow).data(rowData).draw(false);
+
+                        let rowNode = table.row(currentRow).node();
+                        $(rowNode).find('td').eq(0).addClass('text-center'); 
+                        $(rowNode).find('td').eq(6).addClass('text-center'); // วันหมดอายุ
+                        $(rowNode).find('td').eq(7).addClass('text-center'); // สถานะ
+                        if (HAS_ACTION_COLUMN) $(rowNode).find('td').eq(8).addClass('text-center'); 
+                    } else {
+                        AppTools.showModal(i18n.errorTitle, response.message, 'warning');
+                    }
+                }
+            });
+        });
+        
+        // ================== ลบผู้ใช้ ==================
+        $('#usersTable').on('click', '.btn-delete', function() {
+            let tr = $(this).closest('tr');
+            let userId = $(this).data('id');
+
+            Swal.fire({
+                title: i18n.deleteSwalTitle,
+                text: i18n.deleteSwalText,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#e74a3b', 
+                cancelButtonColor: '#858796', 
+                confirmButtonText: '<i class="fas fa-trash"></i> ' + i18n.deleteSwalConfirm,
+                cancelButtonText: i18n.deleteSwalCancel
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        type: 'POST',
+                        url: '<%= baseUrl %>/api/delete_user',
+                        data: { id: userId },
+                        success: function(response) {
+                            if (response.status === 'success') {
+                                Swal.fire(i18n.successTitle, response.message, 'success');
+                                let table = $('#usersTable').DataTable();
+                                table.row(tr).remove().draw(false);
+                            } else {
+                                Swal.fire(i18n.errorTitle, response.message, 'warning');
+                            }
+                        },
+                        error: function() {
+                            Swal.fire(i18n.serverError, i18n.networkError, 'error');
+                        }
+                    });
+                }
+            });
+        });
+    });
+</script>

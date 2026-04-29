@@ -1,0 +1,37 @@
+# --- ส่วนของ Node.js Express ---
+		location /node_ww/ {
+			# rewrite เพื่อตัดคำว่า /node_ww ออกก่อนส่งไปให้ Node.js 
+			# เพราะใน Node.js คุณกรเขียน app.get('/') ไม่ได้เขียน app.get('/node_ww')
+			rewrite ^/node_ww/(.*)$ /$1 break; 
+
+			proxy_pass http://127.0.0.1:7000; 
+			proxy_http_version 1.1;
+			proxy_set_header Upgrade $http_upgrade;
+			proxy_set_header Connection 'upgrade';
+			proxy_set_header Host $host;
+			proxy_cache_bypass $http_upgrade;
+		}
+
+		# ส่วนของไฟล์ Static สำหรับโปรเจกต์ Node
+		location /node_ww/public/ {
+			alias "C:/webserver/www/node_ww/public/";
+		}
+		
+		# --- ส่วนของ Node.js Express ---
+		location /myproject_nodejs/ {
+			# rewrite เพื่อตัดคำว่า /myproject_nodejs ออกก่อนส่งไปให้ Node.js 
+			# เพราะใน Node.js คุณกรเขียน app.get('/') ไม่ได้เขียน app.get('/myproject_nodejs')
+			rewrite ^/myproject_nodejs/(.*)$ /$1 break; 
+
+			proxy_pass http://127.0.0.1:7000; 
+			proxy_http_version 1.1;
+			proxy_set_header Upgrade $http_upgrade;
+			proxy_set_header Connection 'upgrade';
+			proxy_set_header Host $host;
+			proxy_cache_bypass $http_upgrade;
+		}
+
+		# ส่วนของไฟล์ Static สำหรับโปรเจกต์ Node
+		location /myproject_nodejs/public/ {
+			alias "C:/webserver/www/myproject_nodejs/public/";
+		}

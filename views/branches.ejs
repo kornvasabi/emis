@@ -1,0 +1,198 @@
+<%- include('layouts/header') %>
+<%- include('layouts/sidebar') %>
+<%- include('layouts/topbar') %>
+
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800"><i class="fas fa-store-alt"></i> จัดการข้อมูลสาขา</h1>
+        <button class="btn btn-primary shadow-sm" id="btnAddBranch">
+            <i class="fas fa-plus fa-sm text-white-50"></i> เพิ่มสาขาใหม่
+        </button>
+    </div>
+
+    <div class="card shadow mb-4 border-left-primary">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" id="branchTable" width="100%" cellspacing="0">
+                    <thead class="bg-light text-center">
+                        <tr>
+                            <th>รหัสสาขา</th>
+                            <th>ชื่อสาขา</th>
+                            <th>เบอร์ติดต่อ</th>
+                            <th>ที่อยู่</th>
+                            <th>API URL</th>
+                            <th>จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="branchTableBody">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="branchModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-gradient-primary text-white">
+                <h5 class="modal-title font-weight-bold" id="modalTitle">เพิ่มสาขาใหม่</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="branchForm">
+                <div class="modal-body p-4">
+                    <input type="hidden" id="branchId" name="id">
+                    
+                    <div class="row">
+                        <div class="col-md-4 form-group">
+                            <label>รหัสสาขา (เช่น BR-001) <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="branchCode" name="branch_code" required>
+                        </div>
+                        <div class="col-md-8 form-group">
+                            <label>ชื่อสาขา <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="branchName" name="branch_name" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 form-group">
+                            <label>เบอร์ติดต่อ</label>
+                            <input type="text" class="form-control" id="contactNumber" name="contact_number">
+                        </div>
+                        <div class="col-md-6 form-group">
+                            <label>API URL <small class="text-muted">(สำหรับเชื่อมต่อระบบ)</small></label>
+                            <input type="text" class="form-control" id="apiUrl" name="api_url" placeholder="http://...">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>ที่อยู่</label>
+                        <textarea class="form-control" id="address" name="address" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> บันทึกข้อมูล</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<%- include('layouts/footer') %>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+$(document).ready(function() {
+    
+    // 🚀 1. โหลดข้อมูลลงตาราง
+    function loadBranches() {
+        $.get('<%= baseUrl %>/api/branches', function(response) {
+            if (response.status === 'success') {
+                let rows = '';
+                response.data.forEach(b => {
+                    let branchData = encodeURIComponent(JSON.stringify(b));
+                    rows += `
+                        <tr>
+                            <td class="text-center font-weight-bold text-primary">${b.branch_code}</td>
+                            <td>${b.branch_name}</td>
+                            <td class="text-center">${b.contact_number || '-'}</td>
+                            <td>${b.address || '-'}</td>
+                            <td><small class="text-muted">${b.api_url || '-'}</small></td>
+                            <td class="text-center" style="white-space: nowrap;">
+                                <button class="btn btn-sm btn-info btn-edit" data-info="${branchData}"><i class="fas fa-edit"></i></button>
+                                <button class="btn btn-sm btn-danger btn-delete" data-id="${b.id}" data-name="${b.branch_name}"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                // รีเฟรช DataTables
+                if ($.fn.DataTable.isDataTable('#branchTable')) {
+                    $('#branchTable').DataTable().clear().destroy();
+                }
+                
+                $('#branchTableBody').html(rows);
+                
+                $('#branchTable').DataTable({
+                    language: { url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/th.json' }
+                });
+            }
+        });
+    }
+
+    loadBranches(); 
+
+    // 🚀 2. เปิด Modal เพิ่มข้อมูล
+    $('#btnAddBranch').click(function() {
+        $('#branchForm')[0].reset();
+        $('#branchId').val('');
+        // ปลดล็อคช่องรหัสสาขาให้กรอกได้
+        $('#branchCode').prop('readonly', false);
+        $('#modalTitle').text('เพิ่มสาขาใหม่');
+        $('#branchModal').modal('show');
+    });
+
+    // 🚀 3. เปิด Modal แก้ไขข้อมูล
+    $(document).on('click', '.btn-edit', function() {
+        let data = JSON.parse(decodeURIComponent($(this).data('info')));
+        
+        $('#branchId').val(data.id);
+        $('#branchCode').val(data.branch_code).prop('readonly', true); // ล็อคไม่ให้แก้รหัส
+        $('#branchName').val(data.branch_name);
+        $('#contactNumber').val(data.contact_number);
+        $('#apiUrl').val(data.api_url);
+        $('#address').val(data.address);
+        
+        $('#modalTitle').text('แก้ไขข้อมูลสาขา: ' + data.branch_code);
+        $('#branchModal').modal('show');
+    });
+
+    // 🚀 4. บันทึกข้อมูล (เพิ่ม/แก้ไข)
+    $('#branchForm').submit(function(e) {
+        e.preventDefault();
+        
+        let id = $('#branchId').val();
+        let url = id ? '<%= baseUrl %>/api/branches/update/' + id : '<%= baseUrl %>/api/branches/add';
+        let formData = $(this).serialize();
+
+        $.post(url, formData, function(response) {
+            if(response.status === 'success') {
+                Swal.fire({ icon: 'success', title: 'สำเร็จ', text: response.message, showConfirmButton: false, timer: 1500 });
+                $('#branchModal').modal('hide');
+                loadBranches(); 
+            } else {
+                Swal.fire('ผิดพลาด', response.message, 'error');
+            }
+        });
+    });
+
+    // 🚀 5. ยกเลิกข้อมูล (Soft Delete)
+    $(document).on('click', '.btn-delete', function() {
+        let id = $(this).data('id');
+        let name = $(this).data('name');
+
+        Swal.fire({
+            title: 'ยืนยันการยกเลิก?',
+            text: `คุณต้องการปิดการใช้งานสาขา "${name}" ใช่หรือไม่?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'ใช่, ยกเลิกเลย!',
+            cancelButtonText: 'ปิด'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.post('<%= baseUrl %>/api/branches/delete/' + id, function(response) {
+                    if(response.status === 'success') {
+                        Swal.fire('ยกเลิกสำเร็จ!', response.message, 'success');
+                        loadBranches(); 
+                    }
+                });
+            }
+        });
+    });
+});
+</script>

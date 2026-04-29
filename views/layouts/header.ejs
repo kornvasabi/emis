@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>PJK</title>
+	<link rel="icon" type="image/x-icon" href="/favicon.ico">
+
+    <link href="<%= baseUrl %>/vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet">
+    <link href="<%= baseUrl %>/css/sb-admin-2.min.css" rel="stylesheet">
+	<link href="<%= baseUrl %>/public/css/font_family.css" rel="stylesheet">
+	<style>
+		body, h1, h2, h3, h4, h5, h6, p, span, div, a, li, button, input, select, textarea, label, .table, .btn, .sidebar {
+			font-family: 'Sarabun', sans-serif !important;
+		}
+		body { font-size: 0.95rem; font-weight: 400; }
+		h1, h2, h3, h4, h5, h6 { font-weight: 600 !important; }
+	</style>
+	
+	<script>
+		// รันทันทีก่อน render เพื่อป้องกัน sidebar โผล่
+		(function () {
+		  if (window.innerWidth < 768 && sessionStorage.getItem('sidebarHidden') === '1') {
+			document.documentElement.setAttribute('data-sidebar-hidden', 'true');
+		  }
+		})();
+	</script>
+
+	<style>
+		/* ซ่อน sidebar ทันทีถ้ามี attribute นี้ */
+		[data-sidebar-hidden="true"] .sidebar {
+		  width: 0 !important;
+		  overflow: hidden !important;
+		}
+		[data-sidebar-hidden="true"] body {
+		  overflow-x: hidden !important;
+		}
+	</style>
+	<style>
+		/* ========================================== */
+		/* 🖨️ ตั้งค่าสำหรับการพิมพ์ (Print Mode) */
+		/* ========================================== */
+		@media print {
+			/* 1. ซ่อนทุกอย่างบนหน้าจอ ทั้งเมนู แถบบน ตารางด้านหลัง */
+			body * {
+				visibility: hidden !important;
+			}
+	
+			/* 2. บังคับให้โชว์เฉพาะเนื้อหาใน Modal สรุปบิล */
+			#summaryOutboundModal, #summaryOutboundModal * {
+				visibility: visible !important;
+			}
+	
+			/* 3. จัดตำแหน่ง Modal ให้อยู่มุมซ้ายบนพอดีกระดาษ */
+			#summaryOutboundModal {
+				position: absolute !important;
+				left: 0 !important;
+				top: 0 !important;
+				width: 100% !important;
+				margin: 0 !important;
+				padding: 0 !important;
+				border: none !important;
+				box-shadow: none !important;
+			}
+	
+			/* 4. ซ่อนปุ่ม "พิมพ์สรุป" กับ "ปิดหน้าต่าง" ตอนปรินท์ (กระดาษจะได้สวยๆ) */
+			#summaryOutboundModal .modal-footer {
+				display: none !important;
+			}
+	
+			/* 5. ซ่อนปุ่มกากบาทมุมขวาบน (X) */
+			#summaryOutboundModal .close {
+				display: none !important;
+			}
+	
+			/* 6. ลบเงาดำๆ ของพื้นหลัง Modal ตอนเปิด */
+			.modal-backdrop {
+				display: none !important;
+			}
+			
+			/* 7. (Optional) ปรับพื้นหลังให้ขาวสะอาด ประหยัดหมึก */
+			.modal-content {
+				border: none !important;
+				background-color: white !important;
+			}
+		}
+	</style>
+</head>
+
+<body id="page-top">
+    <div id="wrapper">

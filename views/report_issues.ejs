@@ -1,0 +1,115 @@
+<%- include('layouts/header') %>
+<%- include('layouts/sidebar') %>
+<%- include('layouts/topbar') %>
+
+<div class="container-fluid">
+    <h1 class="h3 mb-4 text-gray-800">ออกรายงานปัญหา (Issues Report)</h1>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-filter"></i> ระบุเงื่อนไขการออกรายงาน</h6>
+        </div>
+        <div class="card-body">
+            <!-- form action="<%= baseUrl %>/export/issues/excel" method="GET" target="_blank">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="font-weight-bold">ตั้งแต่วันที่:</label>
+                        <input type="date" name="startDate" class="form-control" required>
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <label class="font-weight-bold">ถึงวันที่:</label>
+                        <input type="date" name="endDate" class="form-control" required>
+                    </div>
+
+                    <div class="col-md-4 mb-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-success btn-block shadow-sm">
+                            <i class="fas fa-file-excel"></i> ส่งออกเป็น Excel (XLSX)
+                        </button>
+                    </div>
+                </div>
+            </form -->
+			<form method="GET" target="_blank">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label class="font-weight-bold">ตั้งแต่วันที่:</label>
+                        <input type="date" name="startDate" class="form-control" required>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="font-weight-bold">ถึงวันที่:</label>
+                        <input type="date" name="endDate" class="form-control" required>
+                    </div>
+
+                    <div class="col-md-3 mb-3 d-flex align-items-end">
+                        <button type="submit" formaction="<%= baseUrl %>/export/issues/excel" class="btn btn-success btn-block shadow-sm">
+                            <i class="fas fa-file-excel"></i> ส่งออก Excel
+                        </button>
+                    </div>
+
+                    <div class="col-md-3 mb-3 d-flex align-items-end">
+                        <button type="button" id="btnExportPdf" class="btn btn-danger btn-block shadow-sm">
+                            <i class="fas fa-file-pdf"></i> ส่งออก PDF
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<%- include('layouts/footer') %>
+
+<script>
+    $(document).ready(function() {
+
+        // 🟢 ดักจับการกดปุ่ม ส่งออก PDF
+        $('#btnExportPdf').on('click', async function(e) {
+            e.preventDefault();
+            
+            const startDate = $('input[name="startDate"]').val();
+            const endDate = $('input[name="endDate"]').val();
+
+            if(!startDate || !endDate) {
+                Swal.fire('แจ้งเตือน', 'กรุณาเลือกวันที่เริ่มต้นและสิ้นสุดให้ครบถ้วน', 'warning');
+                return;
+            }
+
+            // 🚀 โชว์ป๊อปอัพโหลด
+            Swal.fire({
+                title: 'กำลังสร้างไฟล์ PDF',
+                text: 'ระบบกำลังจัดหน้ากระดาษ กรุณารอสักครู่...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            try {
+                const response = await fetch(`<%= baseUrl %>/export/issues/pdf?startDate=${startDate}&endDate=${endDate}`);
+                
+                if (!response.ok) {
+                    throw new Error('เกิดข้อผิดพลาดจากเซิร์ฟเวอร์');
+                }
+
+                const blob = await response.blob();
+                
+                // ==========================================
+                // 🟢 ส่วนที่แก้ไขใหม่: เปิดแท็บใหม่เพื่อ Preview PDF
+                // ==========================================
+                const fileURL = window.URL.createObjectURL(blob);
+                
+                // สั่งเปิด URL ของไฟล์ PDF ในแท็บใหม่ ('_blank')
+                window.open(fileURL, '_blank'); 
+
+                // ปิดป๊อปอัพโหลด
+                Swal.close();
+                // ==========================================
+
+            } catch (error) {
+                console.error("Blob PDF Error:", error);
+                Swal.fire('ข้อผิดพลาด', 'ไม่สามารถสร้างไฟล์ PDF ได้', 'error');
+            }
+        });
+
+    });
+</script>

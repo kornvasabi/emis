@@ -1,0 +1,2 @@
+# Configuration files (มีข้อมูลส่วนตัว เช่น API keys, passwords)
+.env

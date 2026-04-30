@@ -157,8 +157,11 @@
     </div>
 </div>
 
+<div id="resultBox" style="margin-top: 20px;"></div>
+
 <%- include('layouts/footer') %>
 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 $(document).ready(function() {
@@ -225,6 +228,9 @@ $(document).ready(function() {
 
         // ส่งตัวแปรพ่วงท้าย URL ไปด้วย (Query String)
         $.get(`<%= baseUrl %>/api/machine_trans?startDate=${startDate}&endDate=${endDate}`, function(response) {
+            
+            // 🟢 2. โหลดเสร็จแล้ว สั่งปิด Loading ทันที
+
             if (response.status === 'success') {
                 let rows = '';
                 let mobileCards = ''; 
@@ -280,9 +286,15 @@ $(document).ready(function() {
                 
                 if ($.fn.DataTable.isDataTable('#transTable')) { $('#transTable').DataTable().clear().destroy(); }
                 $('#transTableBody').html(rows);
-                $('#transTable').DataTable({ language: { url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/th.json' }, order: [[0, 'desc']] });
+                $('#transTable').DataTable({ language: { url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/th.json' }, order: [[0, 'desc']] });
                 $('#transListMobile').html(mobileCards || '<div class="col-12 text-center text-muted py-4">ไม่พบข้อมูล</div>');
+            } else {
+                // 🟢 กรณี Backend ส่งสถานะ Error กลับมา
+                Swal.fire('ข้อผิดพลาด', response.message || 'ไม่สามารถโหลดข้อมูลได้', 'warning');
             }
+        }).fail(function() {
+            // 🟢 3. กรณีเน็ตหลุด หรือติดต่อ Server ไม่ได้
+            Swal.fire('การเชื่อมต่อขัดข้อง', 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้', 'error');
         });
     }
 
@@ -303,9 +315,11 @@ $(document).ready(function() {
 
         $.post('<%= baseUrl %>/api/machine_trans/add', $(this).serialize(), function(res) {
             if(res.status === 'success') {
-                Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', showConfirmButton: false, timer: 1500 });
-                $('#addTransModal').modal('hide');
-                loadData(); 
+                Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', showConfirmButton: false, timer: 1500 })
+                .then(() => {
+                    $('#addTransModal').modal('hide');
+                    loadData();
+                });
             } else {
                 Swal.fire('ข้อผิดพลาด', res.message, 'warning');
             }
@@ -328,33 +342,58 @@ $(document).ready(function() {
     $('#editTransForm').submit(function(e) {
         e.preventDefault();
         let id = $('#editTransId').val();
+        let btn = $(this).find('button[type="submit"]');
+        let originalText = btn.html();
+        btn.html('<i class="fas fa-spinner fa-spin"></i> กำลังอัปเดต...').prop('disabled', true);
+
         $.post(`<%= baseUrl %>/api/machine_trans/update/${id}`, $(this).serialize(), function(res) {
             if(res.status === 'success') {
-                Swal.fire({ icon: 'success', title: 'อัปเดตสำเร็จ', showConfirmButton: false, timer: 1500 });
-                $('#editTransModal').modal('hide');
-                loadData(); 
+                Swal.fire({ icon: 'success', title: 'อัปเดตสำเร็จ', showConfirmButton: false, timer: 1500 })
+                .then(() => {
+                    $('#editTransModal').modal('hide');
+                    loadData();
+                });
+            } else {
+                Swal.fire('ข้อผิดพลาด', res.message, 'warning');
             }
-        });
+        }).fail(() => Swal.fire('Error', 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้', 'error'))
+          .always(() => btn.html(originalText).prop('disabled', false));
     });
 
     $(document).on('click', '.btn-delete', function() {
         let id = $(this).data('id');
         Swal.fire({
-            title: 'ยืนยันการยกเลิก?',
-            text: "ข้อมูลนี้จะถูกลบออกจากระบบ",
+            title: 'ยืนยันการลบ?',
+            text: "ข้อมูลนี้จะถูกลบออกจากระบบ!",
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#d33',
             cancelButtonColor: '#3085d6',
-            confirmButtonText: 'ใช่, ยกเลิก!',
-            cancelButtonText: 'ปิด'
+            confirmButtonText: 'ใช่, ลบเลย!',
+            cancelButtonText: 'ยกเลิก'
         }).then((result) => {
             if (result.isConfirmed) {
+                // เพิ่มการโชว์ Loading ระหว่างรอลบ
+                Swal.fire({
+                    title: 'กำลังลบข้อมูล...',
+                    allowOutsideClick: false,
+                    showConfirmButton: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
                 $.post(`<%= baseUrl %>/api/machine_trans/delete/${id}`, function(res) {
                     if(res.status === 'success') {
-                        Swal.fire('ลบสำเร็จ!', res.message, 'success');
-                        loadData(); 
+                        Swal.fire('ลบสำเร็จ!', res.message, 'success')
+                        .then(() => {
+                            loadData();
+                        });
+                    } else {
+                        Swal.fire('ข้อผิดพลาด', res.message, 'error');
                     }
+                }).fail(() => {
+                    Swal.fire('Error', 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้', 'error');
                 });
             }
         });

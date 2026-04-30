@@ -110,18 +110,45 @@ exports.addTransactionBatch = async (req, res) => {
             breakHours = [breakHours];
             remarks = [remarks];
         }
-
+		
         for (let i = 0; i < machineIds.length; i++) {
             let mId = machineIds[i];
             let mQty = machineQtys[i] || '1'; // ดึงจำนวนเครื่อง
             let wHrs = parseFloat(workHours[i]) || 0;
             let bHrs = parseFloat(breakHours[i]) || 0;
             let rmks = remarks[i] || '';
+			
+			// ==========================================
+			// 🚀 1. เช็คข้อมูลซ้ำซ้อน และดึง "ชื่อประเภทเครื่องจักร" มาแสดง
+			// ==========================================
+			const sqlCheck = `
+				SELECT m.machine_name 
+				FROM machine_trans t
+				LEFT JOIN machines m ON t.machine_id = m.id
+				WHERE t.branch_id = ? 
+				  AND t.machine_id = ? 
+				  AND t.record_date = ? 
+				  AND t.status != 'cancelled'
+			`;
+			
+			const [existingRecord] = await db.query(sqlCheck, [branch_id, mId, record_date]);
 
+			// ถ้าเจอข้อมูลซ้ำ
+			if (existingRecord.length > 0) {
+				// ดึงชื่อเครื่องจักรออกมา (ถ้าไม่เจอให้ใช้คำแทน)
+				const machineName = existingRecord[0].machine_name || 'เครื่องจักรประเภทนี้';
+
+				return res.json({ 
+					status: 'error', 
+					// ใช้ Template Literal (เครื่องหมาย ` `) เพื่อต่อข้อความและแทรกตัวแปร
+					message: `มีการบันทึกข้อมูลการทำงานของ "${machineName}" ในวันนี้ไปแล้วครับ!\n\nหากต้องการเพิ่มข้อมูลใหม่ กรุณายกเลิกหรือลบรายการเดิมก่อนครับ` 
+				});
+			}
+			
             if (mId) {
                 await connection.query(`
-                    INSERT INTO machine_trans (branch_id, record_date, machine_id, machine_qty, working_hours, breakdown_hours, remarks, created_by)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO machine_trans (branch_id, record_date, machine_id, machine_qty, working_hours, breakdown_hours, remarks, created_by, status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active')
                 `, [branch_id, record_date, mId, mQty, wHrs, bHrs, rmks, staffId]);
             }
         }

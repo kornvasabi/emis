@@ -5,11 +5,18 @@
 <div class="container-fluid">
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
         <h1 class="h3 mb-0 text-gray-800"><i class="fas fa-cogs"></i> บันทึกการทำงานเครื่องจักร/เบรกดาวน์</h1>
-        <% if (permission && permission.can_add === 1) { %>
-            <button class="btn btn-primary shadow-sm" id="btnAddTrans">
-                <i class="fas fa-plus fa-sm text-white-50"></i> บันทึกข้อมูลประจำวัน
+        <div>
+            <% if (permission && permission.can_add === 1) { %>
+                <button class="btn btn-primary shadow-sm" id="btnAddTrans">
+                    <i class="fas fa-plus fa-sm text-white-50"></i> บันทึกข้อมูลประจำวัน
+                </button>
+            <% } %>
+            <!-- ปุ่มออกรายงาน -->
+            <button class="btn btn-success shadow-sm mr-2" id="btnShowReport">
+                <i class="fas fa-file-excel fa-sm text-white-50"></i> รายงานสรุป
             </button>
-        <% } %>
+
+        </div>
     </div>
     
     <div class="card shadow mb-4">
@@ -158,6 +165,67 @@
         </div>
     </div>
 </div>
+<!-- Modal รายงาน Pivot (เต็มจอ) -->
+<div class="modal fade" id="reportModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" style="max-width: 98vw; margin: 1vh auto;" role="document">
+        <div class="modal-content" style="height: 98vh;">
+            <div class="modal-header bg-success text-white py-2">
+                <h5 class="modal-title font-weight-bold"><i class="fas fa-table"></i> รายงานสรุปชั่วโมงการทำงานเครื่องจักร</h5>
+                <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body d-flex flex-column p-3 bg-light">
+                
+                <!-- เงื่อนไขค้นหารายงาน -->
+                <div class="card shadow-sm mb-3 border-left-success flex-shrink-0">
+                    <div class="card-body py-2">
+                        <form id="reportFilterForm" class="form-inline">
+                            <label class="font-weight-bold mr-2">สาขา:</label>
+                            <select class="form-control form-control-sm mr-3" id="reportBranch" required
+                                <%= typeof accessLevel !== 'undefined' && accessLevel === 3 ? 'readonly style="pointer-events: none; background-color: #eaecf4;"' : '' %>>
+                                <% if (typeof accessLevel !== 'undefined' && accessLevel !== 3) { %>
+                                    <option value="">-- เลือกสาขา --</option>
+                                <% } %>
+                                <% if (typeof branches !== 'undefined') { %>
+                                    <% branches.forEach(function(b) { %>
+                                        <option value="<%= b.id %>" <%= typeof accessLevel !== 'undefined' && accessLevel === 3 ? 'selected' : '' %>><%= b.branch_name %></option>
+                                    <% }); %>
+                                <% } %>
+                            </select>
+
+                            <label class="font-weight-bold mr-2">ตั้งแต่วันที่:</label>
+                            <input type="date" class="form-control form-control-sm mr-3" id="reportStartDate" required>
+                            
+                            <label class="font-weight-bold mr-2">ถึงวันที่:</label>
+                            <input type="date" class="form-control form-control-sm mr-3" id="reportEndDate" required>
+                            
+                            <button type="submit" class="btn btn-sm btn-success mr-2"><i class="fas fa-search"></i> แสดงรายงาน</button>
+                            <button type="button" class="btn btn-sm btn-outline-success mr-2" id="btnExportExcel"><i class="fas fa-file-excel"></i> Export Excel</button>
+                            <!-- ปุ่มปริ้นท์ (Optional) -->
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="window.print()"><i class="fas fa-print"></i> พิมพ์</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- พื้นที่แสดงตารางรายงาน -->
+                <div class="card shadow-sm flex-grow-1" style="overflow: hidden;">
+                    <div class="card-body p-0" style="overflow: auto; height: 100%;">
+                        <div class="table-responsive" style="height: 100%;">
+                            <table id="reportTable" class="table table-bordered table-sm table-hover mb-0" style="min-width: max-content;">
+                                <thead class="thead-light text-center" id="reportThead" style="position: sticky; top: 0; z-index: 1;">
+                                    <!-- Header จะถูกสร้างด้วย JS -->
+                                </thead>
+                                <tbody id="reportTbody">
+                                    <tr><td class="text-center py-5 text-muted">กรุณากดปุ่ม "แสดงรายงาน"</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
 
 <div id="resultBox" style="margin-top: 20px;"></div>
 
@@ -165,6 +233,8 @@
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<!-- ใส่ตัวนี้เข้าไปแทน (รองรับการจัด Format) -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <script>
 $(document).ready(function() {
     // 🟢 3. ดักจับการกดปุ่ม "ค้นหา"
@@ -399,6 +469,186 @@ $(document).ready(function() {
                 });
             }
         });
+    });
+    // ==========================================
+    // 🟢 ระบบรายงาน (Pivot Report)
+    // ==========================================
+    
+    // เปิด Modal รายงาน
+    $('#btnShowReport').click(function() {
+        // เซ็ตวันที่เริ่มต้นของรายงานให้เป็นวันปัจจุบันอัตโนมัติ
+        const todayStr = new Date().toISOString().split('T')[0];
+        $('#reportStartDate').val(todayStr);
+        $('#reportEndDate').val(todayStr);
+        
+        // เคลียร์ตาราง
+        $('#reportThead').html('');
+        $('#reportTbody').html('<tr><td class="text-center py-5 text-muted">กรุณากดปุ่ม "แสดงรายงาน"</td></tr>');
+        
+        $('#reportModal').modal('show');
+    });
+
+    // กดปุ่มแสดงรายงาน
+    $('#reportFilterForm').submit(function(e) {
+        e.preventDefault();
+        
+        const branchId = $('#reportBranch').val();
+        const startDate = $('#reportStartDate').val();
+        const endDate = $('#reportEndDate').val();
+
+        Swal.fire({ title: 'กำลังประมวลผลรายงาน...', showConfirmButton: false, didOpen: () => { Swal.showLoading(); }});
+
+        $.get(`<%= baseUrl %>/api/machine_trans/report?branch_id=${branchId}&startDate=${startDate}&endDate=${endDate}`, function(res) {
+            Swal.close();
+            
+            if (res.status === 'success') {
+                renderPivotTable(res.data.machines, res.data.transactions);
+            } else {
+                Swal.fire('ข้อผิดพลาด', res.message, 'warning');
+            }
+        }).fail(() => Swal.fire('Error', 'ไม่สามารถโหลดข้อมูลได้', 'error'));
+    });
+
+    // ฟังก์ชันวาดตาราง Pivot แบบอลังการ
+    function renderPivotTable(machines, transactions) {
+        if (machines.length === 0) {
+            $('#reportTbody').html('<tr><td class="text-center py-5 text-danger">ไม่พบข้อมูลเครื่องจักรในสาขานี้</td></tr>');
+            return;
+        }
+
+        // 1. จัดกลุ่มข้อมูล (Group By Date)
+        const dataByDate = {};
+        transactions.forEach(t => {
+            if (!dataByDate[t.record_date]) {
+                // เก็บวันที่ไว้เป็น Key
+                dataByDate[t.record_date] = { display_date: t.display_date, day_only: t.day_only, machines: {} };
+            }
+            // ใส่ข้อมูลเครื่องจักรลงไปในวันที่นั้นๆ
+            dataByDate[t.record_date].machines[t.machine_id] = {
+                qty: t.machine_qty,
+                work: parseFloat(t.working_hours) || 0,
+                break: parseFloat(t.breakdown_hours) || 0
+            };
+        });
+
+        // 2. สร้าง Header ของตาราง (หัว 2 ชั้นตามภาพ)
+        // ชั้นบน: ชื่อเครื่องจักร
+        let thead1 = `<tr><th rowspan="2" class="align-middle text-center bg-white" style="position: sticky; left: 0; z-index: 2; border-bottom: 2px solid #dee2e6;">วันที่</th>`;
+        // ชั้นล่าง: คอลัมน์ย่อย 3 ช่อง
+        let thead2 = `<tr>`;
+
+        machines.forEach(m => {
+            // ใช้ชื่อเครื่องจักร หรือ รหัสเครื่องจักรก็ได้ตามถนัด
+            let mName = m.machine_name; 
+            thead1 += `<th colspan="3" class="text-center bg-warning text-dark border-dark">${mName}</th>`;
+            thead2 += `
+                <th class="text-center bg-light border-dark"><small>เครื่องจักร<br>ใช้งาน</small></th>
+                <th class="text-center bg-light border-dark"><small>ชั่วโมง<br>ทำงาน</small></th>
+                <th class="text-center bg-light border-dark"><small>ชั่วโมง<br>เบรกดาวน์</small></th>
+            `;
+        });
+        thead1 += `</tr>`;
+        thead2 += `</tr>`;
+
+        // 3. สร้าง Body ข้อมูล
+        let tbody = ``;
+        let dates = Object.keys(dataByDate).sort(); // เรียงวันที่จากน้อยไปมาก
+        
+        if (dates.length === 0) {
+            tbody = `<tr><td colspan="${(machines.length * 3) + 1}" class="text-center py-4">ไม่พบประวัติการบันทึกข้อมูลในช่วงวันที่เลือก</td></tr>`;
+        } else {
+            dates.forEach(d => {
+                let rowData = dataByDate[d];
+                // คอลัมน์แรก (วันที่) ล็อคไว้ซ้ายมือเวลาเลื่อนตารางแนวนอน
+                tbody += `<tr><td class="text-center font-weight-bold bg-white border-dark" style="position: sticky; left: 0; z-index: 1;">${rowData.day_only}</td>`;
+
+                // วนลูปวาดข้อมูลตามคอลัมน์เครื่องจักร
+                machines.forEach(m => {
+                    let mData = rowData.machines[m.id];
+                    if (mData) {
+                        let bkText = mData.break > 0 ? mData.break.toFixed(2) : '-'; // ถ้าไม่มีเบรกดาวน์ ให้ใส่ขีด -
+                        tbody += `
+                            <td class="text-center border-dark bg-white">${mData.qty}</td>
+                            <td class="text-center border-dark bg-white">${mData.work.toFixed(2)}</td>
+                            <td class="text-center text-danger border-dark bg-white">${bkText}</td>
+                        `;
+                    } else {
+                        // ถ้าวันนั้นไม่ได้คีย์ข้อมูลเครื่องจักรตัวนี้
+                        tbody += `
+                            <td class="text-center text-muted border-dark bg-white">-</td>
+                            <td class="text-center text-muted border-dark bg-white">-</td>
+                            <td class="text-center text-muted border-dark bg-white">-</td>
+                        `;
+                    }
+                });
+                tbody += `</tr>`;
+            });
+        }
+
+        $('#reportThead').html(thead1 + thead2);
+        $('#reportTbody').html(tbody);
+    }
+    // ==========================================
+    // 🟢 ระบบ Export เป็น Excel (พร้อมจัด Format)
+    // ==========================================
+    $('#btnExportExcel').click(function() {
+        if ($('#reportThead').html().trim() === '') {
+            Swal.fire('คำเตือน', 'กรุณากด "แสดงรายงาน" เพื่อดึงข้อมูลก่อน Export ครับ', 'warning');
+            return;
+        }
+
+        let branchText = $("#reportBranch option:selected").text().trim();
+        if (branchText === "-- เลือกสาขา --") branchText = "รวมทุกสาขา";
+        
+        let startDate = $('#reportStartDate').val();
+        let endDate = $('#reportEndDate').val();
+        let fileName = `รายงานเครื่องจักร_${branchText}_${startDate}_ถึง_${endDate}.xlsx`;
+
+        // 1. ดึงตารางมาแปลงเป็น Workbook
+        let tableElement = document.getElementById("reportTable");
+        let wb = XLSX.utils.table_to_book(tableElement, { sheet: "Report" });
+        let ws = wb.Sheets["Report"];
+
+        // 2. 🎨 จัดฟอร์แมตตาราง (ใส่ Font, ตีเส้นขอบ, ใส่สีหัวตาราง)
+        for (let cellAddress in ws) {
+            // ข้ามพวกค่า Setting ของ SheetJS (!ref, !merges)
+            if (cellAddress[0] === '!') continue; 
+
+            let cell = ws[cellAddress];
+            
+            // ดึงเลขแถวออกมา (เช่น A1 -> 1, B3 -> 3) เพื่อเช็คว่าเป็นหัวตารางไหม
+            let rowNum = parseInt(cellAddress.replace(/\D/g, ''));
+
+            // กำหนด Style พื้นฐานให้ทุกเซลล์ (Font TH Sarabun, จัดกึ่งกลาง, ตีเส้นขอบ)
+            let cellStyle = {
+                font: { name: "TH SarabunPSK", sz: 16 }, // เปลี่ยนชื่อ Font และขนาดได้ที่นี่
+                alignment: { vertical: "center", horizontal: "center" },
+                border: {
+                    top: { style: "thin", color: { rgb: "000000" } },
+                    bottom: { style: "thin", color: { rgb: "000000" } },
+                    left: { style: "thin", color: { rgb: "000000" } },
+                    right: { style: "thin", color: { rgb: "000000" } }
+                }
+            };
+
+            // 🎯 ถ้าเป็นหัวตาราง (แถวที่ 1 และ 2) ให้ตัวหนาและใส่สีพื้นหลัง
+            if (rowNum <= 2) {
+                cellStyle.font.bold = true;
+                cellStyle.fill = { fgColor: { rgb: "FFF2CC" } }; // สีพื้นหลังเหลืองอ่อน
+            }
+
+            // นำ Style ไปยัดใส่เซลล์
+            cell.s = cellStyle;
+        }
+
+        // 3. ปรับความกว้างของคอลัมน์ (ความกว้างตั้งต้น)
+        // คอลัมน์แรก (วันที่) กว้าง 15, ส่วนคอลัมน์อื่นๆ กว้างประมาณ 10
+        let colWidths = [{ wch: 35 }]; 
+        for (let i = 0; i < 50; i++) { colWidths.push({ wch: 10 }); } 
+        ws['!cols'] = colWidths;
+
+        // 4. สั่งดาวน์โหลด
+        XLSX.writeFile(wb, fileName);
     });
 });
 </script>

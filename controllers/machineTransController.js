@@ -195,3 +195,57 @@ exports.deleteTransaction = async (req, res) => {
         res.json({ status: 'error', message: 'ลบข้อมูลไม่สำเร็จ' });
     }
 };
+
+// 🟢 6. ดึงข้อมูลทำรายงาน (Pivot Table)
+exports.getReportData = async (req, res) => {
+    try {
+        const { branch_id, startDate, endDate } = req.query;
+        const userId = req.session.user.id;
+        const accessLevel = req.currentPermission ? Number(req.currentPermission.access_level) : 3;
+
+        // 1. ดักสิทธิ์สาขา: ถ้าเป็นพนักงานระดับ 3 บังคับให้ดูได้แค่สาขาตัวเอง
+        let targetBranch = branch_id;
+        if (accessLevel === 3) {
+            targetBranch = req.session.user.branch_id;
+        }
+
+        if (!targetBranch) {
+            return res.json({ status: 'error', message: 'กรุณาเลือกสาขา' });
+        }
+
+        // 2. ดึงข้อมูลชื่อสาขา (สำหรับทำหัวกระดาษรายงาน)
+        const [branchData] = await db.query('SELECT branch_name FROM branches WHERE id = ?', [targetBranch]);
+        const branchName = branchData.length > 0 ? branchData[0].branch_name : '';
+
+        // 3. ดึงรายชื่อเครื่องจักรทั้งหมดของสาขานี้ (เพื่อเอาไปสร้างเป็น Header แนวนอน)
+        const [machines] = await db.query(
+            'SELECT id, machine_name, machine_code FROM machines WHERE branch_id = ? AND is_active = 1 ORDER BY id ASC',
+            [targetBranch]
+        );
+
+        // 4. ดึงข้อมูลการทำงานในช่วงวันที่เลือก
+        const [transactions] = await db.query(`
+            SELECT 
+                DATE_FORMAT(record_date, '%Y-%m-%d') as record_date,
+                DATE_FORMAT(record_date, '%d') as day_only, 
+                DATE_FORMAT(record_date, '%d/%m/%Y') as display_date,
+                machine_id, machine_qty, working_hours, breakdown_hours
+            FROM machine_trans
+            WHERE branch_id = ? AND record_date BETWEEN ? AND ? AND status != 'cancelled'
+            ORDER BY record_date ASC
+        `, [targetBranch, startDate, endDate]);
+
+        res.json({
+            status: 'success',
+            data: {
+                branchName: branchName,
+                machines: machines,
+                transactions: transactions
+            }
+        });
+
+    } catch (error) {
+        console.error("Report Error:", error);
+        res.json({ status: 'error', message: 'เกิดข้อผิดพลาดในการดึงข้อมูลรายงาน' });
+    }
+};

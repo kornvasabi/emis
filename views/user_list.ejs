@@ -291,7 +291,7 @@
     }
 </style>
 <script>
-    const i18n = <%- JSON.stringify({
+    const i18n = `<%- JSON.stringify({
         noExpiry: __('user_list.no_expiry'),
         suspended: __('user_list.status_suspended'),
         normal: __('user_list.status_normal'),
@@ -306,7 +306,7 @@
         serverError: __('msg.server_error'),
         networkError: __('msg.network_error'),
         select2Placeholder: __('user_list.select2_placeholder')
-    }) %>;
+    }) %>`;
 
     const strEdit = '<%= (permission && permission.can_edit === 1) ? "true" : "false" %>';
     const strDelete = '<%= (permission && permission.can_delete === 1) ? "true" : "false" %>';

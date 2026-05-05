@@ -165,6 +165,7 @@ appRouter.get('/api/machine_trans', requireAuth, checkPermission, machineTransCo
 appRouter.post('/api/machine_trans/add', requireAuth, checkPermission, machineTransController.addTransactionBatch);
 appRouter.post('/api/machine_trans/update/:id', requireAuth, checkPermission, machineTransController.updateTransaction);
 appRouter.post('/api/machine_trans/delete/:id', requireAuth, checkPermission, machineTransController.deleteTransaction);
+appRouter.get('/api/machine_trans/report', requireAuth, checkPermission, machineTransController.getReportData); // รายงาน
 
 // ==========================================
 // 🟢 ระบบบันทึกการใช้เชื้อเพลิง (Fuel)

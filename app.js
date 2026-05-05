@@ -204,7 +204,7 @@ app.use((req, res, next) => {
             <script>
                 Swal.fire({
                     title: 'กำลังพัฒนา 🚧',
-                    text: 'ฟังก์ชันนี้กำลังอยู่ระหว่างการพัฒนาครับ อดใจรออีกนิดนะครับ!',
+                    text: 'ฟังก์ชันนี้กำลังอยู่ระหว่างการพัฒนาครับ',
                     icon: 'info',
                     confirmButtonText: 'กลับสู่หน้าหลัก',
                     confirmButtonColor: '#f6c23e',

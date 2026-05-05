@@ -1,0 +1,469 @@
+<%- include('layouts/header') %>
+<%- include('layouts/sidebar') %>
+<%- include('layouts/topbar') %>
+
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800"><i class="fas fa-fire"></i> บันทึกการใช้เชื้อเพลิงบอยเลอร์</h1>
+        <button class="btn btn-primary shadow-sm" id="btnAddTrans">
+            <i class="fas fa-plus fa-sm text-white-50"></i> บันทึกข้อมูลประจำวัน
+        </button>
+    </div>
+    
+    <!-- Filter วันที่ -->
+    <div class="card shadow mb-4">
+        <div class="card-body py-3">
+            <form id="searchForm" class="form-inline d-flex justify-content-center justify-content-md-start">
+                <label class="font-weight-bold mr-2">ตั้งแต่วันที่:</label>
+                <input type="date" class="form-control mr-3 mb-2 mb-md-0" id="searchStartDate" name="startDate">
+                
+                <label class="font-weight-bold mr-2">ถึงวันที่:</label>
+                <input type="date" class="form-control mr-3 mb-2 mb-md-0" id="searchEndDate" name="endDate">
+                
+                <button type="submit" class="btn btn-primary mb-2 mb-md-0"><i class="fas fa-search"></i> ค้นหา</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ตารางข้อมูล (Desktop) -->
+    <div class="card shadow mb-4 border-left-primary d-none d-lg-block">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" id="transTable" width="100%" cellspacing="0">
+                    <thead class="bg-light text-center">
+                        <tr>
+                            <th class="align-middle">วันที่</th>
+                            <th class="align-middle">สาขา</th>
+                            <th class="align-middle">บอยเลอร์</th>
+                            <th class="align-middle text-primary">ไอน้ำ (ตัน)</th>
+                            <th class="align-middle text-success">เชื้อเพลิง (ตัน)</th>
+                            <th class="align-middle text-info">บาท/ตันไอน้ำ</th>
+                            <th class="align-middle text-warning">ผลงาน (กก./ตันไอน้ำ)</th>
+                            <th class="align-middle text-danger">ผลต่าง (จาก STD)</th>
+                            <th class="align-middle">จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- รายการข้อมูล (Mobile) -->
+    <div class="d-block d-lg-none">
+        <h6 class="font-weight-bold text-primary mb-3"><i class="fas fa-list"></i> รายการบันทึกทั้งหมด</h6>
+        <div class="row" id="transListMobile"></div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- Modal เพิ่ม/แก้ไข ข้อมูล (ใช้โครงสร้างเดียวกัน) -->
+<!-- ========================================== -->
+<div class="modal fade" id="transModal" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-gradient-primary text-white">
+                <h5 class="modal-title font-weight-bold" id="modalTitle"><i class="fas fa-edit"></i> ฟอร์มบันทึกเชื้อเพลิงบอยเลอร์</h5>
+                <button type="button" class="close text-white" data-dismiss="modal">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="transForm">
+                <div class="modal-body p-4 calc-container bg-light">
+                    <input type="hidden" id="transId" name="id">
+                    
+                    <!-- ส่วนหัว: ข้อมูลพื้นฐาน -->
+                    <div class="row bg-white p-3 rounded shadow-sm mb-3 border-left-primary">
+                        <div class="col-md-4 form-group mb-md-0">
+                            <label class="font-weight-bold">วันที่บันทึก <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="formDate" name="record_date" required>
+                        </div>
+                        <div class="col-md-4 form-group mb-md-0">
+                            <label class="font-weight-bold">สาขา <span class="text-danger">*</span></label>
+                            <select class="form-control" id="formBranch" name="branch_id" required 
+                                <%= typeof accessLevel !== 'undefined' && accessLevel === 3 ? 'readonly style="pointer-events: none; background-color: #eaecf4;"' : '' %>>
+                                <% if (typeof accessLevel !== 'undefined' && accessLevel !== 3) { %>
+                                    <option value="">-- เลือกสาขา --</option>
+                                <% } %>
+                                <% if (typeof branches !== 'undefined') { %>
+                                    <% branches.forEach(function(b) { %>
+                                        <option value="<%= b.id %>" <%= typeof accessLevel !== 'undefined' && accessLevel === 3 ? 'selected' : '' %>><%= b.branch_name %></option>
+                                    <% }); %>
+                                <% } %>
+                            </select>
+                        </div>
+                        <div class="col-md-4 form-group mb-0">
+                            <label class="font-weight-bold">บอยเลอร์ <span class="text-danger">*</span></label>
+                            <select class="form-control" id="formBoiler" name="boiler_id" required>
+                                <option value="">-- เลือกสาขาก่อน --</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <!-- 4.1 เชื้อเพลิงที่ใช้ -->
+                        <div class="col-lg-6 mb-3">
+                            <div class="card h-100 shadow-sm border-0">
+                                <div class="card-header bg-primary text-white font-weight-bold py-2"><i class="fas fa-weight-hanging"></i> 4.1 เชื้อเพลิงที่ใช้ (ตัน/วัน)</div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-4 form-group"><label>ขี้เลื่อย</label><input type="number" step="0.001" class="form-control calc-input txt-weight" name="sawdust_weight" placeholder="0.000"></div>
+                                        <div class="col-4 form-group"><label>ปีกไม้</label><input type="number" step="0.001" class="form-control calc-input txt-weight" name="slab_wood_weight" placeholder="0.000"></div>
+                                        <div class="col-4 form-group"><label>เศษไม้เสีย</label><input type="number" step="0.001" class="form-control calc-input txt-weight" name="scrap_wood_weight" placeholder="0.000"></div>
+                                    </div>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend"><span class="input-group-text bg-light font-weight-bold">รวมน้ำหนัก</span></div>
+                                        <input type="text" class="form-control text-primary font-weight-bold text-right" id="prevTotalWeight" readonly placeholder="0.000">
+                                        <div class="input-group-append"><span class="input-group-text">ตัน</span></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 4.2 ราคาเชื้อเพลิง -->
+                        <div class="col-lg-6 mb-3">
+                            <div class="card h-100 shadow-sm border-0">
+                                <div class="card-header bg-success text-white font-weight-bold py-2"><i class="fas fa-money-bill-wave"></i> 4.2 ราคาเชื้อเพลิง (ต่อตัน)</div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-4 form-group"><label>ราคาขี้เลื่อย</label><input type="number" step="0.01" class="form-control calc-input txt-price" name="sawdust_price" placeholder="0.00"></div>
+                                        <div class="col-4 form-group"><label>ราคาปีกไม้</label><input type="number" step="0.01" class="form-control calc-input txt-price" name="slab_wood_price" placeholder="0.00"></div>
+                                        <div class="col-4 form-group"><label>ราคาเศษไม้เสีย</label><input type="number" step="0.01" class="form-control calc-input txt-price" name="scrap_wood_price" placeholder="0.00"></div>
+                                    </div>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend"><span class="input-group-text bg-light font-weight-bold">รวมราคา</span></div>
+                                        <input type="text" class="form-control text-success font-weight-bold text-right" id="prevTotalPrice" readonly placeholder="0.00">
+                                        <div class="input-group-append"><span class="input-group-text">บาท</span></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <!-- 4.3 การผลิตไอน้ำ -->
+                        <div class="col-lg-6 mb-3">
+                            <div class="card h-100 shadow-sm border-0">
+                                <div class="card-header bg-info text-white font-weight-bold py-2"><i class="fas fa-cloud"></i> 4.3 การผลิตไอน้ำ</div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-6 form-group">
+                                            <label>ปริมาณผลิต <span class="text-danger">*</span></label>
+                                            <div class="input-group">
+                                                <input type="number" step="0.001" class="form-control calc-input" id="txtSteamProd" name="steam_production" required placeholder="0.000">
+                                                <div class="input-group-append"><span class="input-group-text">ตัน/วัน</span></div>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 form-group">
+                                            <label>ชั่วโมงทำงาน <span class="text-danger">*</span></label>
+                                            <div class="input-group">
+                                                <input type="number" step="0.01" class="form-control calc-input" id="txtWorkHours" name="working_hours" required placeholder="0.00">
+                                                <div class="input-group-append"><span class="input-group-text">ชม.</span></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="input-group mt-2">
+                                        <div class="input-group-prepend"><span class="input-group-text bg-light font-weight-bold">ตันต่อชั่วโมง</span></div>
+                                        <input type="text" class="form-control text-info font-weight-bold text-right" id="prevSteamPerHr" readonly placeholder="0.000">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 4.4 & 4.5 สรุปผล -->
+                        <div class="col-lg-6 mb-3">
+                            <div class="card h-100 shadow-sm border-0 border-left-warning">
+                                <div class="card-header bg-dark text-white font-weight-bold py-2"><i class="fas fa-chart-line"></i> สรุปผลลัพธ์ (Live Preview)</div>
+                                <div class="card-body bg-white">
+                                    
+                                    <div class="form-group mb-3">
+                                        <label class="font-weight-bold">4.4 ค่าเชื้อเพลิง</label>
+                                        <div class="input-group">
+                                            <input type="text" class="form-control text-danger font-weight-bold text-right" id="prevCostPerSteam" readonly placeholder="0.00">
+                                            <div class="input-group-append"><span class="input-group-text">บาท / ตันไอน้ำ</span></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group mb-0">
+                                        <label class="font-weight-bold">4.5 สรุปเชื้อเพลิงที่ใช้ (ผลงาน)</label>
+                                        <div class="input-group">
+                                            <input type="text" class="form-control text-warning font-weight-bold text-right" id="prevActualUsage" readonly placeholder="0.00">
+                                            <div class="input-group-append"><span class="input-group-text text-dark">กก. / ตันไอน้ำ</span></div>
+                                        </div>
+                                        <small class="text-muted mt-1">* ผลต่างจากค่า STD จะถูกคำนวณและแสดงหลังการบันทึกข้อมูล</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group mt-2 mb-0">
+                        <label class="font-weight-bold">หมายเหตุ</label>
+                        <textarea class="form-control" name="remarks" rows="2" placeholder="ระบุเพิ่มเติม (ถ้ามี)"></textarea>
+                    </div>
+
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn btn-primary" id="btnSubmit"><i class="fas fa-save"></i> บันทึกข้อมูล</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<%- include('layouts/footer') %>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+$(document).ready(function() {
+
+    const allBoilers = <%- JSON.stringify(typeof boilers !== 'undefined' ? boilers : []) %>;
+    
+    const todayStr = new Date().toISOString().split('T')[0];
+    $('#searchStartDate').val(todayStr);
+    $('#searchEndDate').val(todayStr);
+
+    let isEditMode = false;
+
+    // ==========================================
+    // 🟢 ระบบ Dropdown บอยเลอร์ตามสาขา
+    // ==========================================
+    function filterBoilers(branchId, selectedBoilerId = '') {
+        let boilerDrop = $('#formBoiler');
+        boilerDrop.html('<option value="">-- เลือกบอยเลอร์ --</option>');
+        
+        if (branchId) {
+            let filtered = allBoilers.filter(b => b.branch_id == branchId);
+            if (filtered.length > 0) {
+                filtered.forEach(b => {
+                    let selected = (b.id == selectedBoilerId) ? 'selected' : '';
+                    boilerDrop.append(`<option value="${b.id}" ${selected}>${b.boiler_name}</option>`);
+                });
+            } else {
+                boilerDrop.html('<option value="">ไม่มีบอยเลอร์ในสาขานี้</option>');
+            }
+        } else {
+            boilerDrop.html('<option value="">-- เลือกสาขาก่อน --</option>');
+        }
+    }
+
+    $('#formBranch').change(function() {
+        filterBoilers($(this).val());
+    });
+
+    // ==========================================
+    // 🟢 ระบบคำนวณ Live Preview (อิงสูตรตามสเปก)
+    // ==========================================
+    $('.calc-input').on('input', function() {
+        // 4.1 น้ำหนักรวม
+        let sumWeight = 0;
+        $('.txt-weight').each(function() { sumWeight += parseFloat($(this).val()) || 0; });
+        $('#prevTotalWeight').val(sumWeight.toFixed(3));
+
+        // 4.2 ราคารวม
+        let sumPrice = 0;
+        $('.txt-price').each(function() { sumPrice += parseFloat($(this).val()) || 0; });
+        $('#prevTotalPrice').val(sumPrice.toFixed(2));
+
+        // ดึงค่าการผลิต
+        let steamProd = parseFloat($('#txtSteamProd').val()) || 0;
+        let workHours = parseFloat($('#txtWorkHours').val()) || 0;
+
+        // 4.3 ตันต่อชั่วโมง
+        if (workHours > 0) $('#prevSteamPerHr').val((steamProd / workHours).toFixed(3));
+        else $('#prevSteamPerHr').val('');
+
+        // 4.4 ค่าเชื้อเพลิง (บาท/ตันไอน้ำ)
+        if (steamProd > 0) $('#prevCostPerSteam').val((sumPrice / steamProd).toFixed(2));
+        else $('#prevCostPerSteam').val('');
+
+        // 4.5 ผลงาน (กก./ตันไอน้ำ)
+        if (steamProd > 0) $('#prevActualUsage').val(((sumWeight / steamProd) * 1000).toFixed(2));
+        else $('#prevActualUsage').val('');
+    });
+
+    // ==========================================
+    // 🟢 โหลดข้อมูลเข้าตาราง
+    // ==========================================
+    $('#searchForm').submit(function(e) {
+        e.preventDefault();
+        loadData();
+    });
+
+    function loadData() {
+        const startDate = $('#searchStartDate').val();
+        const endDate = $('#searchEndDate').val();
+
+        Swal.fire({ title: 'กำลังโหลดข้อมูล...', showConfirmButton: false, didOpen: () => { Swal.showLoading(); } });
+
+        $.get(`<%= baseUrl %>/api/boiler_fuels?startDate=${startDate}&endDate=${endDate}`, function(response) {
+            Swal.close();
+            if (response.status === 'success') {
+                let rows = ''; let mobileCards = ''; 
+                
+                response.data.forEach(t => {
+                    let transData = encodeURIComponent(JSON.stringify(t));
+                    
+                    // แปลงสีผลต่าง (ถ้าเกิน STD ปกติจะขาดทุน ให้เป็นสีแดง)
+                    let diffBadge = t.fuel_usage_diff < 0 
+                        ? `<span class="badge badge-danger p-2">${t.fuel_usage_diff}</span>` 
+                        : `<span class="badge badge-success p-2">+${t.fuel_usage_diff}</span>`;
+
+                    rows += `
+                        <tr>
+                            <td class="text-center">${t.display_date}</td>
+                            <td class="text-center"><span class="badge badge-info">${t.branch_name}</span></td>
+                            <td class="font-weight-bold">${t.boiler_name}</td>
+                            <td class="text-center font-weight-bold text-primary">${t.steam_production}</td>
+                            <td class="text-center font-weight-bold text-success">${t.total_fuel_weight}</td>
+                            <td class="text-center text-info">${t.fuel_cost_per_steam}</td>
+                            <td class="text-center text-warning font-weight-bold">${t.actual_fuel_usage}</td>
+                            <td class="text-center">${diffBadge}</td>
+                            <td class="text-center" style="white-space: nowrap;">
+                                <button class="btn btn-sm btn-warning btn-edit" data-info="${transData}"><i class="fas fa-pen"></i></button>
+                                <button class="btn btn-sm btn-danger btn-delete" data-id="${t.id}"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                    `;
+
+                    mobileCards += `
+                        <div class="col-12 mb-3">
+                            <div class="card border-left-success shadow-sm">
+                                <div class="card-body py-3">
+                                    <div class="d-flex justify-content-between border-bottom pb-2 mb-2">
+                                        <span class="font-weight-bold"><i class="far fa-calendar-alt text-primary"></i> ${t.display_date}</span>
+                                        <span class="badge badge-info">${t.branch_name}</span>
+                                    </div>
+                                    <h6 class="font-weight-bold text-dark text-center">${t.boiler_name}</h6>
+                                    <div class="row text-center border-top pt-2 mt-2">
+                                        <div class="col-6 border-right">
+                                            <small class="text-muted">ผลงาน (กก./ตัน)</small><br>
+                                            <span class="font-weight-bold text-warning h5">${t.actual_fuel_usage}</span>
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted">ผลต่างจาก STD</small><br>
+                                            ${diffBadge}
+                                        </div>
+                                    </div>
+                                    <div class="text-right border-top pt-2 mt-2">
+                                        <button class="btn btn-sm btn-outline-warning btn-edit" data-info="${transData}"><i class="fas fa-pen"></i></button>
+                                        <button class="btn btn-sm btn-outline-danger btn-delete" data-id="${t.id}"><i class="fas fa-trash"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                if ($.fn.DataTable.isDataTable('#transTable')) { $('#transTable').DataTable().clear().destroy(); }
+                $('#transTableBody').html(rows);
+                $('#transTable').DataTable({ language: { url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/th.json' }, order: [[0, 'desc']] });
+                $('#transListMobile').html(mobileCards || '<div class="col-12 text-center text-muted py-4">ไม่พบข้อมูล</div>');
+            } else {
+                Swal.fire('ข้อผิดพลาด', response.message, 'warning');
+            }
+        });
+    }
+
+    loadData();
+
+    // ==========================================
+    // 🟢 ระบบบันทึก (Add) & แก้ไข (Edit)
+    // ==========================================
+    
+    // กดปุ่มบันทึกข้อมูลใหม่
+    $('#btnAddTrans').click(function() {
+        isEditMode = false;
+        $('#transForm')[0].reset();
+        $('#transId').val('');
+        $('#modalTitle').html('<i class="fas fa-plus"></i> บันทึกข้อมูลใหม่');
+        
+        // เคลียร์ Live Preview
+        $('.calc-input').trigger('input'); 
+        
+        document.getElementById('formDate').valueAsDate = new Date();
+        filterBoilers($('#formBranch').val()); // ดึงบอยเลอร์สำหรับสาขาเริ่มต้น
+        
+        $('#transModal').modal('show');
+    });
+
+    // กดปุ่มแก้ไข (Edit)
+    $(document).on('click', '.btn-edit', function() {
+        isEditMode = true;
+        let data = JSON.parse(decodeURIComponent($(this).data('info')));
+        
+        $('#modalTitle').html('<i class="fas fa-pen"></i> แก้ไขข้อมูล (ค่า STD อิงตามวันที่บันทึก)');
+        $('#transId').val(data.id);
+        $('#formDate').val(data.raw_date || data.record_date.split('T')[0]);
+        $('#formBranch').val(data.branch_id);
+        
+        // โหลดบอยเลอร์และเซ็ตค่า
+        filterBoilers(data.branch_id, data.boiler_id);
+
+        // นำข้อมูลลงช่อง Input
+        $('input[name="sawdust_weight"]').val(data.sawdust_weight);
+        $('input[name="slab_wood_weight"]').val(data.slab_wood_weight);
+        $('input[name="scrap_wood_weight"]').val(data.scrap_wood_weight);
+        $('input[name="sawdust_price"]').val(data.sawdust_price);
+        $('input[name="slab_wood_price"]').val(data.slab_wood_price);
+        $('input[name="scrap_wood_price"]').val(data.scrap_wood_price);
+        $('input[name="steam_production"]').val(data.steam_production);
+        $('input[name="working_hours"]').val(data.working_hours);
+        $('textarea[name="remarks"]').val(data.remarks);
+
+        // ให้ Live Preview ทำงานเพื่อคำนวณตัวเลขแสดงทันที
+        $('.calc-input').trigger('input');
+        
+        $('#transModal').modal('show');
+    });
+
+    // Submit Form (รองรับทั้ง Add และ Update)
+    $('#transForm').submit(function(e) {
+        e.preventDefault();
+        let btn = $('#btnSubmit');
+        let originalText = btn.html();
+        btn.html('<i class="fas fa-spinner fa-spin"></i> กำลังบันทึก...').prop('disabled', true);
+
+        let url = isEditMode ? `<%= baseUrl %>/api/boiler_fuels/update/${$('#transId').val()}` : `<%= baseUrl %>/api/boiler_fuels/add`;
+
+        $.post(url, $(this).serialize(), function(res) {
+            if(res.status === 'success') {
+                Swal.fire({ icon: 'success', title: 'สำเร็จ', showConfirmButton: false, timer: 1500 });
+                $('#transModal').modal('hide');
+                loadData(); 
+            } else {
+                Swal.fire('ข้อผิดพลาด', res.message, 'warning');
+            }
+        }).fail(() => Swal.fire('Error', 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้', 'error'))
+          .always(() => btn.html(originalText).prop('disabled', false));
+    });
+
+    // ==========================================
+    // 🟢 ระบบลบข้อมูล
+    // ==========================================
+    $(document).on('click', '.btn-delete', function() {
+        let id = $(this).data('id');
+        Swal.fire({
+            title: 'ยืนยันการยกเลิก?',
+            text: "ข้อมูลนี้จะถูกยกเลิกและซ่อนจากตาราง",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            confirmButtonText: 'ใช่, ยกเลิกเลย!',
+            cancelButtonText: 'ปิด'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.post(`<%= baseUrl %>/api/boiler_fuels/delete/${id}`, function(res) {
+                    if(res.status === 'success') {
+                        Swal.fire('สำเร็จ!', res.message, 'success');
+                        loadData(); 
+                    } else Swal.fire('ข้อผิดพลาด', res.message, 'error');
+                });
+            }
+        });
+    });
+
+});
+</script>

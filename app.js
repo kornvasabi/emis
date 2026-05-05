@@ -20,6 +20,8 @@ const multer = require('multer');
 const branchController = require('./controllers/branchController'); 
 const machineTransController = require('./controllers/machineTransController'); // การทำงานของเครื่องจักร/เบรกดาวน์
 const fuelController = require('./controllers/fuelController'); // ดึง Controller มาไว้ด้านบน
+const boilerPressureController = require('./controllers/boilerPressureController'); //แรงดันไอน้ำปลายทางของบอยเลอร์
+const boilerFuelController = require('./controllers/boilerFuelController'); // ระบบการใช้เชื้อเพลิงบอยเลอร์
 
 // 🟢 3. โยน baseUrl เข้า app.locals เพื่อให้ทุกหน้า EJS เอาไปใช้ได้
 app.locals.baseUrl = baseUrl;
@@ -172,6 +174,20 @@ appRouter.get('/api/fuel_trans', requireAuth, checkPermission, fuelController.ge
 appRouter.post('/api/fuel_trans/add', requireAuth, checkPermission, fuelController.addTransactionBatch);
 appRouter.post('/api/fuel_trans/update/:id', requireAuth, checkPermission, fuelController.updateTransaction);
 appRouter.post('/api/fuel_trans/delete/:id', requireAuth, checkPermission, fuelController.deleteTransaction);
+
+// ระบบแรงดันไอน้ำบอยเลอร์
+appRouter.get('/boiler_pressures', requireAuth, loadMenus, checkPermission, boilerPressureController.boilerPressurePage);
+appRouter.get('/api/boiler_pressures', requireAuth, checkPermission, boilerPressureController.getPressures);
+appRouter.post('/api/boiler_pressures/add', requireAuth, checkPermission, boilerPressureController.addPressure);
+appRouter.post('/api/boiler_pressures/update/:id', requireAuth, checkPermission, boilerPressureController.updatePressure);
+appRouter.post('/api/boiler_pressures/delete/:id', requireAuth, checkPermission, boilerPressureController.deletePressure);
+
+// ระบบการใช้เชื้อเพลิงบอยเลอร์
+appRouter.get('/boiler_fuels', requireAuth, loadMenus, checkPermission, boilerFuelController.boilerFuelPage);
+appRouter.get('/api/boiler_fuels', requireAuth, checkPermission, boilerFuelController.getTransactions);
+appRouter.post('/api/boiler_fuels/add', requireAuth, checkPermission, boilerFuelController.addTransaction);
+appRouter.post('/api/boiler_fuels/update/:id', requireAuth, checkPermission, boilerFuelController.updateTransaction);
+appRouter.post('/api/boiler_fuels/delete/:id', requireAuth, checkPermission, boilerFuelController.deleteTransaction);
 
 // ระบบ Import Excel
 const upload = multer({ storage: multer.memoryStorage() });

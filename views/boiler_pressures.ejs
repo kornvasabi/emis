@@ -1,0 +1,457 @@
+<%- include('layouts/header') %>
+<%- include('layouts/sidebar') %>
+<%- include('layouts/topbar') %>
+
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800"><i class="fas fa-tachometer-alt"></i> บันทึกแรงดันไอน้ำปลายทางบอยเลอร์</h1>
+        <button class="btn btn-primary shadow-sm" id="btnAddTrans">
+            <i class="fas fa-plus fa-sm text-white-50"></i> บันทึกข้อมูลประจำวัน
+        </button>
+    </div>
+    
+    <!-- Filter วันที่ -->
+    <div class="card shadow mb-4">
+        <div class="card-body py-3">
+            <form id="searchForm" class="form-inline d-flex justify-content-center justify-content-md-start">
+                <label class="font-weight-bold mr-2">ตั้งแต่วันที่:</label>
+                <input type="date" class="form-control mr-3 mb-2 mb-md-0" id="searchStartDate" name="startDate">
+                
+                <label class="font-weight-bold mr-2">ถึงวันที่:</label>
+                <input type="date" class="form-control mr-3 mb-2 mb-md-0" id="searchEndDate" name="endDate">
+                
+                <button type="submit" class="btn btn-primary mb-2 mb-md-0"><i class="fas fa-search"></i> ค้นหา</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ตารางข้อมูล (Desktop) -->
+    <div class="card shadow mb-4 border-left-primary d-none d-lg-block">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" id="transTable" width="100%" cellspacing="0">
+                    <thead class="bg-light text-center">
+                        <tr>
+                            <th rowspan="2" class="align-middle">วันที่</th>
+                            <th rowspan="2" class="align-middle">สาขา</th>
+                            <th rowspan="2" class="align-middle text-primary">จำนวนครั้ง</th>
+                            <th colspan="2" class="text-danger">ตกทั้งหมด</th>
+                            <th colspan="2" class="text-warning">ตกตาม PM</th>
+                            <th colspan="2" class="text-info">ตกนอกเหนือ PM</th>
+                            <th rowspan="2" class="align-middle">หมายเหตุ</th>
+                            <th rowspan="2" class="align-middle">ผู้บันทึก</th>
+                            <th rowspan="2" class="align-middle">จัดการ</th>
+                        </tr>
+                        <tr>
+                            <th class="text-danger">ครั้ง</th>
+                            <th class="text-danger">%</th>
+                            <th class="text-warning">ครั้ง</th>
+                            <th class="text-warning">%</th>
+                            <th class="text-info">ครั้ง</th>
+                            <th class="text-info">%</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- รายการข้อมูล (Mobile) -->
+    <div class="d-block d-lg-none">
+        <h6 class="font-weight-bold text-primary mb-3"><i class="fas fa-list"></i> รายการบันทึกทั้งหมด</h6>
+        <div class="row" id="transListMobile"></div>
+    </div>
+</div>
+
+<!-- Modal เพิ่มข้อมูล -->
+<div class="modal fade" id="addTransModal" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-gradient-primary text-white">
+                <h5 class="modal-title font-weight-bold"><i class="fas fa-edit"></i> ฟอร์มบันทึกแรงดันไอน้ำ</h5>
+                <button type="button" class="close text-white" data-dismiss="modal">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="addTransForm">
+                <div class="modal-body p-4 add-calc-container">
+                    <div class="row bg-light p-3 rounded mb-4">
+                        <div class="col-md-6 form-group mb-md-0">
+                            <label class="font-weight-bold text-dark">วันที่บันทึก <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control border-primary" id="formDate" name="record_date" required>
+                        </div>
+                        <div class="col-md-6 form-group mb-0">
+                            <label class="font-weight-bold text-dark">เลือกสาขา <span class="text-danger">*</span></label>
+                            <select class="form-control border-primary" id="formBranch" name="branch_id" required 
+                                <%= typeof accessLevel !== 'undefined' && accessLevel === 3 ? 'readonly style="pointer-events: none; background-color: #eaecf4;"' : '' %>>
+                                <% if (typeof accessLevel !== 'undefined' && accessLevel !== 3) { %>
+                                    <option value="">-- เลือกสาขา --</option>
+                                <% } %>
+                                <% if (typeof branches !== 'undefined') { %>
+                                    <% branches.forEach(function(b) { %>
+                                        <option value="<%= b.id %>" <%= typeof accessLevel !== 'undefined' && accessLevel === 3 ? 'selected' : '' %>>
+                                            <%= b.branch_name %>
+                                        </option>
+                                    <% }); %>
+                                <% } %>
+                            </select>
+                        </div>
+                    </div>
+
+                    <h6 class="font-weight-bold text-primary border-bottom pb-2 mb-3">รายละเอียดการตกของแรงดันไอน้ำ</h6>
+                    
+                    <div class="row">
+                        <div class="col-md-12 form-group">
+                            <label class="font-weight-bold">จำนวนครั้งทั้งหมด <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control text-primary font-weight-bold input-total-count" name="total_count" required placeholder="ระบุจำนวนครั้ง">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 form-group border-right">
+                            <label class="text-danger">จำนวนตกทั้งหมด <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control input-total-drops mb-2" name="total_drops" required placeholder="จำนวนครั้ง">
+                            <div class="input-group input-group-sm">
+                                <div class="input-group-prepend"><span class="input-group-text bg-danger text-white">%</span></div>
+                                <input type="text" class="form-control preview-total font-weight-bold text-danger text-center" readonly placeholder="0.00">
+                            </div>
+                        </div>
+                        <div class="col-md-4 form-group border-right">
+                            <label class="text-warning">ตกตามเงื่อนไข PM <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control input-pm-drops mb-2" name="pm_drops" required placeholder="จำนวนครั้ง">
+                            <div class="input-group input-group-sm">
+                                <div class="input-group-prepend"><span class="input-group-text bg-warning text-dark">%</span></div>
+                                <input type="text" class="form-control preview-pm font-weight-bold text-warning text-center" readonly placeholder="0.00">
+                            </div>
+                        </div>
+                        <div class="col-md-4 form-group">
+                            <label class="text-info">ตกนอกเหนือ PM <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control input-non-pm-drops mb-2" name="non_pm_drops" required placeholder="จำนวนครั้ง">
+                            <div class="input-group input-group-sm">
+                                <div class="input-group-prepend"><span class="input-group-text bg-info text-white">%</span></div>
+                                <input type="text" class="form-control preview-non-pm font-weight-bold text-info text-center" readonly placeholder="0.00">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group mt-3 mb-0">
+                        <label>หมายเหตุ</label>
+                        <textarea class="form-control" name="remarks" rows="2" placeholder="ระบุหมายเหตุ (ถ้ามี)"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> บันทึกข้อมูล</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal แก้ไขข้อมูล -->
+<div class="modal fade" id="editTransModal" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-gradient-warning text-dark">
+                <h5 class="modal-title font-weight-bold"><i class="fas fa-pen"></i> แก้ไขข้อมูลแรงดันไอน้ำ</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="editTransForm">
+                <div class="modal-body p-4 edit-calc-container">
+                    <input type="hidden" id="editTransId">
+                    
+                    <div class="alert alert-warning text-dark">
+                        <strong>วันที่:</strong> <span id="editDateText"></span> | 
+                        <strong>สาขา:</strong> <span id="editBranchText"></span>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12 form-group">
+                            <label class="font-weight-bold">จำนวนครั้งทั้งหมด <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control text-primary font-weight-bold input-total-count" id="editTotalCount" name="total_count" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 form-group border-right">
+                            <label class="text-danger">จำนวนตกทั้งหมด <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control input-total-drops mb-2" id="editTotalDrops" name="total_drops" required>
+                            <div class="input-group input-group-sm">
+                                <div class="input-group-prepend"><span class="input-group-text bg-danger text-white">%</span></div>
+                                <input type="text" class="form-control preview-total font-weight-bold text-danger text-center" readonly>
+                            </div>
+                        </div>
+                        <div class="col-md-4 form-group border-right">
+                            <label class="text-warning">ตกตามเงื่อนไข PM <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control input-pm-drops mb-2" id="editPmDrops" name="pm_drops" required>
+                            <div class="input-group input-group-sm">
+                                <div class="input-group-prepend"><span class="input-group-text bg-warning text-dark">%</span></div>
+                                <input type="text" class="form-control preview-pm font-weight-bold text-warning text-center" readonly>
+                            </div>
+                        </div>
+                        <div class="col-md-4 form-group">
+                            <label class="text-info">ตกนอกเหนือ PM <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control input-non-pm-drops mb-2" id="editNonPmDrops" name="non_pm_drops" required>
+                            <div class="input-group input-group-sm">
+                                <div class="input-group-prepend"><span class="input-group-text bg-info text-white">%</span></div>
+                                <input type="text" class="form-control preview-non-pm font-weight-bold text-info text-center" readonly>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group mt-3 mb-0">
+                        <label>หมายเหตุ</label>
+                        <textarea class="form-control" id="editRemarks" name="remarks" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn btn-warning"><i class="fas fa-save"></i> อัปเดตข้อมูล</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<%- include('layouts/footer') %>
+
+<!-- สคริปต์การทำงาน -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+$(document).ready(function() {
+
+    // ตั้งค่า วันที่เริ่มต้นค้นหาเป็นวันปัจจุบัน
+    const todayStr = new Date().toISOString().split('T')[0];
+    $('#searchStartDate').val(todayStr);
+    $('#searchEndDate').val(todayStr);
+
+    // ==========================================
+    // 🟢 ระบบคำนวณ Live Preview (% แบบ Real-time)
+    // ==========================================
+    function calculateLivePreview(containerClass) {
+        let container = $(containerClass);
+        let totalCount = parseInt(container.find('.input-total-count').val()) || 0;
+        let totalDrops = parseInt(container.find('.input-total-drops').val()) || 0;
+        let pmDrops = parseInt(container.find('.input-pm-drops').val()) || 0;
+        let nonPmDrops = parseInt(container.find('.input-non-pm-drops').val()) || 0;
+
+        if (totalCount > 0) {
+            container.find('.preview-total').val(((totalDrops / totalCount) * 100).toFixed(2));
+            container.find('.preview-pm').val(((pmDrops / totalCount) * 100).toFixed(2));
+            container.find('.preview-non-pm').val(((nonPmDrops / totalCount) * 100).toFixed(2));
+        } else {
+            container.find('.preview-total').val('0.00');
+            container.find('.preview-pm').val('0.00');
+            container.find('.preview-non-pm').val('0.00');
+        }
+    }
+
+    // ดักจับการพิมพ์ตัวเลข ทั้งในฟอร์มเพิ่ม และ ฟอร์มแก้ไข
+    $('.add-calc-container input[type="number"]').on('input', function() { calculateLivePreview('.add-calc-container'); });
+    $('.edit-calc-container input[type="number"]').on('input', function() { calculateLivePreview('.edit-calc-container'); });
+
+    // ==========================================
+    // 🟢 ระบบโหลดข้อมูล (DataTables)
+    // ==========================================
+    $('#searchForm').submit(function(e) {
+        e.preventDefault();
+        loadData();
+    });
+
+    function loadData() {
+        const startDate = $('#searchStartDate').val();
+        const endDate = $('#searchEndDate').val();
+
+        Swal.fire({
+            title: 'กำลังโหลดข้อมูล...',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        $.get(`<%= baseUrl %>/api/boiler_pressures?startDate=${startDate}&endDate=${endDate}`, function(response) {
+            Swal.close();
+
+            if (response.status === 'success') {
+                let rows = '';
+                let mobileCards = ''; 
+
+                response.data.forEach(t => {
+                    let transData = encodeURIComponent(JSON.stringify(t));
+                    
+                    // Desktop Rows
+                    rows += `
+                        <tr>
+                            <td class="text-center">${t.display_date}</td>
+                            <td class="text-center"><span class="badge badge-info">${t.branch_name}</span></td>
+                            <td class="text-center font-weight-bold text-primary h5">${t.total_count}</td>
+                            
+                            <td class="text-center text-danger font-weight-bold">${t.total_drops}</td>
+                            <td class="text-center text-danger">${t.percent_total_drops}%</td>
+                            
+                            <td class="text-center text-warning font-weight-bold">${t.pm_drops}</td>
+                            <td class="text-center text-warning">${t.percent_pm_drops}%</td>
+                            
+                            <td class="text-center text-info font-weight-bold">${t.non_pm_drops}</td>
+                            <td class="text-center text-info">${t.percent_non_pm_drops}%</td>
+                            
+                            <td><small class="text-muted">${t.remarks || '-'}</small></td>
+                            <td class="text-center"><small><i class="fas fa-user-edit text-secondary"></i> ${t.created_by_name || '-'}</small></td>
+                            <td class="text-center" style="white-space: nowrap;">
+                                <button class="btn btn-sm btn-warning btn-edit" data-info="${transData}"><i class="fas fa-pen"></i></button>
+                                <button class="btn btn-sm btn-danger btn-delete" data-id="${t.id}"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                    `;
+
+                    // Mobile Cards
+                    mobileCards += `
+                        <div class="col-12 mb-3">
+                            <div class="card border-left-info shadow-sm">
+                                <div class="card-body py-3">
+                                    <div class="d-flex justify-content-between border-bottom pb-2 mb-2">
+                                        <span class="font-weight-bold"><i class="far fa-calendar-alt text-primary"></i> ${t.display_date}</span>
+                                        <span class="badge badge-info">${t.branch_name}</span>
+                                    </div>
+                                    <h6 class="font-weight-bold text-dark text-center mb-3">จำนวนครั้งทั้งหมด: <span class="text-primary h5">${t.total_count}</span></h6>
+                                    
+                                    <div class="row text-center border-top pt-2">
+                                        <div class="col-4 border-right">
+                                            <small class="text-muted">ตกทั้งหมด</small><br>
+                                            <span class="font-weight-bold text-danger">${t.total_drops}</span> <small class="text-danger">(${t.percent_total_drops}%)</small>
+                                        </div>
+                                        <div class="col-4 border-right">
+                                            <small class="text-muted">ตกตาม PM</small><br>
+                                            <span class="font-weight-bold text-warning">${t.pm_drops}</span> <small class="text-warning">(${t.percent_pm_drops}%)</small>
+                                        </div>
+                                        <div class="col-4">
+                                            <small class="text-muted">ตกนอก PM</small><br>
+                                            <span class="font-weight-bold text-info">${t.non_pm_drops}</span> <small class="text-info">(${t.percent_non_pm_drops}%)</small>
+                                        </div>
+                                    </div>
+                                    <div class="text-right border-top pt-2 mt-2">
+                                        <button class="btn btn-sm btn-outline-warning btn-edit" data-info="${transData}"><i class="fas fa-pen"></i></button>
+                                        <button class="btn btn-sm btn-outline-danger btn-delete" data-id="${t.id}"><i class="fas fa-trash"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                if ($.fn.DataTable.isDataTable('#transTable')) { $('#transTable').DataTable().clear().destroy(); }
+                $('#transTableBody').html(rows);
+                $('#transTable').DataTable({ 
+                    language: { url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/th.json' }, 
+                    order: [[0, 'desc']] 
+                });
+                $('#transListMobile').html(mobileCards || '<div class="col-12 text-center text-muted py-4">ไม่พบข้อมูล</div>');
+            } else {
+                Swal.fire('ข้อผิดพลาด', response.message, 'warning');
+            }
+        }).fail(() => Swal.fire('ขัดข้อง', 'ไม่สามารถโหลดข้อมูลได้', 'error'));
+    }
+
+    loadData();
+
+    // ==========================================
+    // 🟢 ระบบบันทึก / แก้ไข / ลบ (CRUD)
+    // ==========================================
+
+    // เปิดฟอร์มบันทึก
+    $('#btnAddTrans').click(function() {
+        $('#addTransForm')[0].reset();
+        document.getElementById('formDate').valueAsDate = new Date();
+        calculateLivePreview('.add-calc-container'); // รีเซ็ต % เป็น 0.00
+        $('#addTransModal').modal('show');
+    });
+
+    // Submit เพิ่มข้อมูล
+    $('#addTransForm').submit(function(e) {
+        e.preventDefault();
+        let btn = $(this).find('button[type="submit"]');
+        let originalText = btn.html();
+        btn.html('<i class="fas fa-spinner fa-spin"></i> กำลังบันทึก...').prop('disabled', true);
+
+        $.post('<%= baseUrl %>/api/boiler_pressures/add', $(this).serialize(), function(res) {
+            if(res.status === 'success') {
+                Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', showConfirmButton: false, timer: 1500 });
+                $('#addTransModal').modal('hide');
+                loadData(); 
+            } else {
+                Swal.fire('คำเตือน', res.message, 'warning');
+            }
+        }).fail(() => Swal.fire('Error', 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้', 'error'))
+          .always(() => btn.html(originalText).prop('disabled', false));
+    });
+
+    // เปิดฟอร์มแก้ไข
+    $(document).on('click', '.btn-edit', function() {
+        let data = JSON.parse(decodeURIComponent($(this).data('info')));
+        $('#editTransId').val(data.id);
+        $('#editDateText').text(data.display_date);
+        $('#editBranchText').text(data.branch_name);
+        
+        $('#editTotalCount').val(data.total_count);
+        $('#editTotalDrops').val(data.total_drops);
+        $('#editPmDrops').val(data.pm_drops);
+        $('#editNonPmDrops').val(data.non_pm_drops);
+        $('#editRemarks').val(data.remarks);
+        
+        calculateLivePreview('.edit-calc-container'); // สั่งให้คำนวณ % ใหม่โชว์ทันที
+        $('#editTransModal').modal('show');
+    });
+
+    // Submit แก้ไขข้อมูล
+    $('#editTransForm').submit(function(e) {
+        e.preventDefault();
+        let id = $('#editTransId').val();
+        let btn = $(this).find('button[type="submit"]');
+        let originalText = btn.html();
+        btn.html('<i class="fas fa-spinner fa-spin"></i> กำลังอัปเดต...').prop('disabled', true);
+
+        $.post(`<%= baseUrl %>/api/boiler_pressures/update/${id}`, $(this).serialize(), function(res) {
+            if(res.status === 'success') {
+                Swal.fire({ icon: 'success', title: 'อัปเดตสำเร็จ', showConfirmButton: false, timer: 1500 });
+                $('#editTransModal').modal('hide');
+                loadData(); 
+            } else {
+                Swal.fire('ข้อผิดพลาด', res.message, 'warning');
+            }
+        }).fail(() => Swal.fire('Error', 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้', 'error'))
+          .always(() => btn.html(originalText).prop('disabled', false));
+    });
+
+    // ยืนยันการลบ
+    $(document).on('click', '.btn-delete', function() {
+        let id = $(this).data('id');
+        Swal.fire({
+            title: 'ยืนยันการยกเลิก?',
+            text: "รายการนี้จะถูกยกเลิกออกจากระบบ",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'ใช่, ยกเลิกเลย!',
+            cancelButtonText: 'ปิด'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({ title: 'กำลังดำเนินการ...', showConfirmButton: false, didOpen: () => { Swal.showLoading(); }});
+                $.post(`<%= baseUrl %>/api/boiler_pressures/delete/${id}`, function(res) {
+                    if(res.status === 'success') {
+                        Swal.fire('สำเร็จ!', res.message, 'success');
+                        loadData(); 
+                    } else {
+                        Swal.fire('ข้อผิดพลาด', res.message, 'error');
+                    }
+                }).fail(() => Swal.fire('ขัดข้อง', 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้', 'error'));
+            }
+        });
+    });
+
+});
+</script>

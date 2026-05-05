@@ -19,6 +19,7 @@ const multer = require('multer');
 // const importController = require('./controllers/importController');
 const branchController = require('./controllers/branchController'); 
 const machineTransController = require('./controllers/machineTransController'); // การทำงานของเครื่องจักร/เบรกดาวน์
+const fuelController = require('./controllers/fuelController'); // ดึง Controller มาไว้ด้านบน
 
 // 🟢 3. โยน baseUrl เข้า app.locals เพื่อให้ทุกหน้า EJS เอาไปใช้ได้
 app.locals.baseUrl = baseUrl;
@@ -162,6 +163,15 @@ appRouter.get('/api/machine_trans', requireAuth, checkPermission, machineTransCo
 appRouter.post('/api/machine_trans/add', requireAuth, checkPermission, machineTransController.addTransactionBatch);
 appRouter.post('/api/machine_trans/update/:id', requireAuth, checkPermission, machineTransController.updateTransaction);
 appRouter.post('/api/machine_trans/delete/:id', requireAuth, checkPermission, machineTransController.deleteTransaction);
+
+// ==========================================
+// 🟢 ระบบบันทึกการใช้เชื้อเพลิง (Fuel)
+// ==========================================
+appRouter.get('/fuel_trans', requireAuth, loadMenus, checkPermission, fuelController.fuelTransPage);
+appRouter.get('/api/fuel_trans', requireAuth, checkPermission, fuelController.getTransactions);
+appRouter.post('/api/fuel_trans/add', requireAuth, checkPermission, fuelController.addTransactionBatch);
+appRouter.post('/api/fuel_trans/update/:id', requireAuth, checkPermission, fuelController.updateTransaction);
+appRouter.post('/api/fuel_trans/delete/:id', requireAuth, checkPermission, fuelController.deleteTransaction);
 
 // ระบบ Import Excel
 const upload = multer({ storage: multer.memoryStorage() });

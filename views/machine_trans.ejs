@@ -12,10 +12,11 @@
                 </button>
             <% } %>
             <!-- ปุ่มออกรายงาน -->
-            <button class="btn btn-success shadow-sm mr-2" id="btnShowReport">
-                <i class="fas fa-file-excel fa-sm text-white-50"></i> รายงานสรุป
-            </button>
-
+            <% if (permission && permission.can_rpt === 1) { %>
+                <button class="btn btn-success shadow-sm mr-2" id="btnShowReport">
+                    <i class="fas fa-file-excel fa-sm text-white-50"></i> รายงานสรุป
+                </button>
+            <% } %>
         </div>
     </div>
     

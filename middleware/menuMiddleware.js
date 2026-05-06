@@ -73,7 +73,7 @@ const checkPermission = async (req, res, next) => {
         
         // 2. Query ดึงสิทธิ์ (🟢 เพิ่ม p.access_level เข้ามาด้วย)
         const sql = `
-            SELECT p.can_view, p.can_add, p.can_edit, p.can_delete, p.access_level 
+            SELECT p.can_view, p.can_rpt, p.can_add, p.can_edit, p.can_delete, p.access_level 
             FROM group_permissions p
             JOIN menus m ON p.menu_id = m.id
             WHERE p.group_id = ? AND m.link = ?

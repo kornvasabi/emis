@@ -2,68 +2,71 @@
 <%- include('layouts/sidebar') %>
 <%- include('layouts/topbar') %>
 
-<div class="container-fluid">
-    <!-- Page Heading -->
-    <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0 text-gray-800"><i class="fas fa-tachometer-alt"></i> บันทึกแรงดันไอน้ำปลายทางบอยเลอร์</h1>
-        <button class="btn btn-primary shadow-sm" id="btnAddTrans">
-            <i class="fas fa-plus fa-sm text-white-50"></i> บันทึกข้อมูลประจำวัน
-        </button>
-    </div>
-    
-    <!-- Filter วันที่ -->
-    <div class="card shadow mb-4">
-        <div class="card-body py-3">
-            <form id="searchForm" class="form-inline d-flex justify-content-center justify-content-md-start">
-                <label class="font-weight-bold mr-2">ตั้งแต่วันที่:</label>
-                <input type="date" class="form-control mr-3 mb-2 mb-md-0" id="searchStartDate" name="startDate">
-                
-                <label class="font-weight-bold mr-2">ถึงวันที่:</label>
-                <input type="date" class="form-control mr-3 mb-2 mb-md-0" id="searchEndDate" name="endDate">
-                
-                <button type="submit" class="btn btn-primary mb-2 mb-md-0"><i class="fas fa-search"></i> ค้นหา</button>
-            </form>
+<div class="my-custom-scroll">
+    <div class="container-fluid">
+        <!-- Page Heading -->
+        <div class="d-sm-flex align-items-center justify-content-between mb-4">
+            <h1 class="h3 mb-0 text-gray-800"><i class="fas fa-tachometer-alt"></i> บันทึกแรงดันไอน้ำปลายทางบอยเลอร์</h1>
+            <button class="btn btn-primary shadow-sm" id="btnAddTrans">
+                <i class="fas fa-plus fa-sm text-white-50"></i> บันทึกข้อมูลประจำวัน
+            </button>
         </div>
-    </div>
-
-    <!-- ตารางข้อมูล (Desktop) -->
-    <div class="card shadow mb-4 border-left-primary d-none d-lg-block">
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-bordered table-hover" id="transTable" width="100%" cellspacing="0">
-                    <thead class="bg-light text-center">
-                        <tr>
-                            <th rowspan="2" class="align-middle">วันที่</th>
-                            <th rowspan="2" class="align-middle">สาขา</th>
-                            <th rowspan="2" class="align-middle text-primary">จำนวนครั้ง</th>
-                            <th colspan="2" class="text-danger">ตกทั้งหมด</th>
-                            <th colspan="2" class="text-warning">ตกตาม PM</th>
-                            <th colspan="2" class="text-info">ตกนอกเหนือ PM</th>
-                            <th rowspan="2" class="align-middle">หมายเหตุ</th>
-                            <th rowspan="2" class="align-middle">ผู้บันทึก</th>
-                            <th rowspan="2" class="align-middle">จัดการ</th>
-                        </tr>
-                        <tr>
-                            <th class="text-danger">ครั้ง</th>
-                            <th class="text-danger">%</th>
-                            <th class="text-warning">ครั้ง</th>
-                            <th class="text-warning">%</th>
-                            <th class="text-info">ครั้ง</th>
-                            <th class="text-info">%</th>
-                        </tr>
-                    </thead>
-                    <tbody id="transTableBody"></tbody>
-                </table>
+        
+        <!-- Filter วันที่ -->
+        <div class="card shadow mb-4">
+            <div class="card-body py-3">
+                <form id="searchForm" class="form-inline d-flex justify-content-center justify-content-md-start">
+                    <label class="font-weight-bold mr-2">ตั้งแต่วันที่:</label>
+                    <input type="date" class="form-control mr-3 mb-2 mb-md-0" id="searchStartDate" name="startDate">
+                    
+                    <label class="font-weight-bold mr-2">ถึงวันที่:</label>
+                    <input type="date" class="form-control mr-3 mb-2 mb-md-0" id="searchEndDate" name="endDate">
+                    
+                    <button type="submit" class="btn btn-primary mb-2 mb-md-0"><i class="fas fa-search"></i> ค้นหา</button>
+                </form>
             </div>
         </div>
-    </div>
 
-    <!-- รายการข้อมูล (Mobile) -->
-    <div class="d-block d-lg-none">
-        <h6 class="font-weight-bold text-primary mb-3"><i class="fas fa-list"></i> รายการบันทึกทั้งหมด</h6>
-        <div class="row" id="transListMobile"></div>
+        <!-- ตารางข้อมูล (Desktop) -->
+        <div class="card shadow mb-4 border-left-primary d-none d-lg-block">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" id="transTable" width="100%" cellspacing="0">
+                        <thead class="bg-light text-center">
+                            <tr>
+                                <th rowspan="2" class="align-middle">วันที่</th>
+                                <th rowspan="2" class="align-middle">สาขา</th>
+                                <th rowspan="2" class="align-middle text-primary">จำนวนครั้ง</th>
+                                <th colspan="2" class="text-danger">ตกทั้งหมด</th>
+                                <th colspan="2" class="text-warning">ตกตาม PM</th>
+                                <th colspan="2" class="text-info">ตกนอกเหนือ PM</th>
+                                <th rowspan="2" class="align-middle">หมายเหตุ</th>
+                                <th rowspan="2" class="align-middle">ผู้บันทึก</th>
+                                <th rowspan="2" class="align-middle">จัดการ</th>
+                            </tr>
+                            <tr>
+                                <th class="text-danger">ครั้ง</th>
+                                <th class="text-danger">%</th>
+                                <th class="text-warning">ครั้ง</th>
+                                <th class="text-warning">%</th>
+                                <th class="text-info">ครั้ง</th>
+                                <th class="text-info">%</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- รายการข้อมูล (Mobile) -->
+        <div class="d-block d-lg-none">
+            <h6 class="font-weight-bold text-primary mb-3"><i class="fas fa-list"></i> รายการบันทึกทั้งหมด</h6>
+            <div class="row" id="transListMobile"></div>
+        </div>
     </div>
-</div>
+</div><%- include('layouts/footer') %>
+
 
 <!-- Modal เพิ่มข้อมูล -->
 <div class="modal fade" id="addTransModal" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static">
@@ -217,8 +220,6 @@
     </div>
 </div>
 
-<%- include('layouts/footer') %>
-
 <!-- สคริปต์การทำงาน -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
@@ -265,16 +266,16 @@ $(document).ready(function() {
     function loadData() {
         const startDate = $('#searchStartDate').val();
         const endDate = $('#searchEndDate').val();
-
+        /*
         Swal.fire({
             title: 'กำลังโหลดข้อมูล...',
             allowOutsideClick: false,
             showConfirmButton: false,
             didOpen: () => { Swal.showLoading(); }
         });
-
+        */
         $.get(`<%= baseUrl %>/api/boiler_pressures?startDate=${startDate}&endDate=${endDate}`, function(response) {
-            Swal.close();
+            // Swal.close();
 
             if (response.status === 'success') {
                 let rows = '';

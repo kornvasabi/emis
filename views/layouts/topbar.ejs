@@ -67,3 +67,23 @@
                     </ul>
 					
                 </nav>
+				<style>
+					/* ล็อกหน้าจอหลักไม่ให้เลื่อน */
+					body { overflow: hidden !important; } 
+
+					/* สร้างกล่องเลื่อนเฉพาะเนื้อหา */
+					.my-custom-scroll {
+						/* หัก Topbar และ Footer ออก เพื่อให้พอดีจอเป๊ะๆ */
+						height: calc(100vh - 170px);
+						overflow-y: auto; 
+						overflow-x: hidden;
+						padding-top: 15px;
+						padding-bottom: 50px;
+					}
+
+					/* แต่งสี Scrollbar ให้เล็กและดูโมเดิร์น (สำหรับ Chrome/Edge) */
+					.my-custom-scroll::-webkit-scrollbar { width: 8px; }
+					.my-custom-scroll::-webkit-scrollbar-track { background: transparent; }
+					.my-custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+					.my-custom-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+				</style>

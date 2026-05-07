@@ -2,65 +2,70 @@
 <%- include('layouts/sidebar') %>
 <%- include('layouts/topbar') %>
 
-<div class="container-fluid">
-    <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0 text-gray-800"><i class="fas fa-cogs"></i> บันทึกการทำงานเครื่องจักร/เบรกดาวน์</h1>
-        <div>
-            <% if (permission && permission.can_add === 1) { %>
-                <button class="btn btn-primary shadow-sm" id="btnAddTrans">
-                    <i class="fas fa-plus fa-sm text-white-50"></i> บันทึกข้อมูลประจำวัน
-                </button>
-            <% } %>
-            <!-- ปุ่มออกรายงาน -->
-            <% if (permission && permission.can_rpt === 1) { %>
-                <button class="btn btn-success shadow-sm mr-2" id="btnShowReport">
-                    <i class="fas fa-file-excel fa-sm text-white-50"></i> รายงานสรุป
-                </button>
-            <% } %>
-        </div>
-    </div>
-    
-    <div class="card shadow mb-4">
-        <div class="card-body py-3">
-            <form id="searchForm" class="form-inline d-flex justify-content-center justify-content-md-start">
-                <label class="font-weight-bold mr-2">ตั้งแต่วันที่:</label>
-                <input type="date" class="form-control mr-3 mb-2 mb-md-0" id="searchStartDate" name="startDate">
-                
-                <label class="font-weight-bold mr-2">ถึงวันที่:</label>
-                <input type="date" class="form-control mr-3 mb-2 mb-md-0" id="searchEndDate" name="endDate">
-                
-                <button type="submit" class="btn btn-primary mb-2 mb-md-0"><i class="fas fa-search"></i> ค้นหา</button>
-            </form>
-        </div>
-    </div>
-
-    <div class="card shadow mb-4 border-left-primary d-none d-lg-block">
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-bordered table-hover" id="transTable" width="100%" cellspacing="0">
-                    <thead class="bg-light text-center">
-                        <tr>
-                            <th>วันที่</th>
-                            <th>สาขา</th>
-                            <th>ชื่อเครื่องจักร</th>
-                            <th>จำนวน</th>
-                            <th class="text-success">ชม.ทำงาน</th>
-                            <th class="text-danger">ชม.เบรกดาวน์</th>
-                            <th>หมายเหตุ</th>
-                            <th>จัดการ</th>
-                        </tr>
-                    </thead>
-                    <tbody id="transTableBody"></tbody>
-                </table>
+<div class="my-custom-scroll">
+    <div class="container-fluid">
+        <div class="d-sm-flex align-items-center justify-content-between mb-4">
+            <h1 class="h3 mb-0 text-gray-800"><i class="fas fa-cogs"></i> บันทึกการทำงานเครื่องจักร/เบรกดาวน์</h1>
+            <div>
+                <% if (permission && permission.can_add === 1) { %>
+                    <button class="btn btn-primary shadow-sm" id="btnAddTrans">
+                        <i class="fas fa-plus fa-sm text-white-50"></i> บันทึกข้อมูลประจำวัน
+                    </button>
+                <% } %>
+                <!-- ปุ่มออกรายงาน -->
+                <% if (permission && permission.can_rpt === 1) { %>
+                    <button class="btn btn-success shadow-sm mr-2" id="btnShowReport">
+                        <i class="fas fa-file-excel fa-sm text-white-50"></i> รายงานสรุป
+                    </button>
+                <% } %>
             </div>
         </div>
-    </div>
+        
+        <div class="card shadow mb-4">
+            <div class="card-body py-3">
+                <form id="searchForm" class="form-inline d-flex justify-content-center justify-content-md-start">
+                    <label class="font-weight-bold mr-2">ตั้งแต่วันที่:</label>
+                    <input type="date" class="form-control mr-3 mb-2 mb-md-0" id="searchStartDate" name="startDate">
+                    
+                    <label class="font-weight-bold mr-2">ถึงวันที่:</label>
+                    <input type="date" class="form-control mr-3 mb-2 mb-md-0" id="searchEndDate" name="endDate">
+                    
+                    <button type="submit" class="btn btn-primary mb-2 mb-md-0"><i class="fas fa-search"></i> ค้นหา</button>
+                </form>
+            </div>
+        </div>
 
-    <div class="d-block d-lg-none">
-        <h6 class="font-weight-bold text-primary mb-3"><i class="fas fa-list"></i> รายการบันทึกทั้งหมด</h6>
-        <div class="row" id="transListMobile"></div>
+        <div class="card shadow mb-4 border-left-primary d-none d-lg-block">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" id="transTable" width="100%" cellspacing="0">
+                        <thead class="bg-light text-center">
+                            <tr>
+                                <th>วันที่</th>
+                                <th>สาขา</th>
+                                <th>ชื่อเครื่องจักร</th>
+                                <th>จำนวน</th>
+                                <th class="text-success">ชม.ทำงาน</th>
+                                <th class="text-danger">ชม.เบรกดาวน์</th>
+                                <th>หมายเหตุ</th>
+                                <% if (permission && permission.can_edit === 1 || permission.can_delete === 1) { %>
+                                    <th>จัดการ</th>
+                                <% } %>
+                            </tr>
+                        </thead>
+                        <tbody id="transTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-block d-lg-none">
+            <h6 class="font-weight-bold text-primary mb-3"><i class="fas fa-list"></i> รายการบันทึกทั้งหมด</h6>
+            <div class="row" id="transListMobile"></div>
+        </div>
     </div>
-</div>
+    <div id="resultBox" style="margin-top: 20px;"></div>
+</div> <%- include('layouts/footer') %>
 
 <div class="modal fade" id="addTransModal" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static">
     <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
@@ -228,32 +233,66 @@
     </div>
 </div>
 
-<div id="resultBox" style="margin-top: 20px;"></div>
-
-<%- include('layouts/footer') %>
-
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <!-- ใส่ตัวนี้เข้าไปแทน (รองรับการจัด Format) -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <script>
 $(document).ready(function() {
+    const strEdit = '<%= (permission && permission.can_edit === 1) ? "true" : "false" %>';
+    const strDelete = '<%= (permission && permission.can_delete === 1) ? "true" : "false" %>';
+    
+    const PERM_CAN_EDIT = (strEdit === 'true');
+    const PERM_CAN_DELETE = (strDelete === 'true');
+    
+    const HAS_ACTION_COLUMN = (PERM_CAN_EDIT || PERM_CAN_DELETE);
+
     // 🟢 3. ดักจับการกดปุ่ม "ค้นหา"
     $('#searchForm').submit(function(e) {
         e.preventDefault();
         loadData(); // สั่งให้ดึงข้อมูลใหม่
     });
+    // จังหวะที่ 1: ดักจับตอนที่ User กด "เปลี่ยน/เลือก" เครื่องจักรในช่อง Dropdown
+    $(document).on('change', '.machine-select', function() {
+        updateMachineSelects();
+    });
 
-    const allMachines = `<%- JSON.stringify(typeof machines !== 'undefined' ? machines : []) %>`;
+    const allMachines = JSON.parse(`<%- JSON.stringify(typeof machines !== 'undefined' ? machines : []) %>`);
+
+    // 🟢 1. เติมบรรทัดนี้เข้าไปครับ! (ประกาศตัวแปรเพื่อเก็บค่า)
+    let usedMachineIdsInDB = [];
 
     function getMachineOptionsHtml(branchId) {
         let options = '<option value="">-- เลือกเครื่องจักร --</option>';
         if (!branchId) return options;
-        let filtered = allMachines.filter(m => m.branch_id == branchId);
+        
+        // 🟢 กรองเอาเฉพาะเครื่องจักรของสาขานี้ "และ" ต้องไม่อยู่ใน usedMachineIdsInDB
+        let filtered = allMachines.filter(m => m.branch_id == branchId && !usedMachineIdsInDB.includes(m.id));
+
         filtered.forEach(m => {
             options += `<option value="${m.id}">${m.machine_name} (${m.machine_type})</option>`;
         });
         return options;
+    }
+    // 🟢 ฟังก์ชันดึงข้อมูลว่า วันนี้+สาขานี้ คีย์เครื่องจักรไหนไปแล้วบ้าง
+    function fetchAndResetMachines() {
+        let branchId = $('#formBranch').val();
+        let recordDate = $('#formDate').val();
+
+        $('#machineRows').empty(); // เคลียร์แถวเครื่องจักรทิ้งก่อน
+
+        if (branchId && recordDate) {
+            Swal.fire({ title: 'กำลังอัปเดตตัวเลือก...', showConfirmButton: false, didOpen: () => { Swal.showLoading(); }});
+
+            // ยิงไปถามหลังบ้าน
+            $.get(`<%= baseUrl %>/api/machine_trans/existing?branch_id=${branchId}&record_date=${recordDate}`, function(res) {
+                Swal.close();
+                if (res.status === 'success') {
+                    usedMachineIdsInDB = res.data || []; // เก็บ ID ที่ใช้ไปแล้วลงตัวแปร
+                    addMachineRow(); // สร้างแถวใหม่ (ซึ่งมันจะเรียก getMachineOptionsHtml ที่กรองของซ้ำออกแล้ว)
+                    updateMachineSelects(); // สั่งล็อกฟังก์ชันป้องกันการเลือกซ้ำที่คุณกรทำไว้ก่อนหน้า
+                }
+            }).fail(() => Swal.close());
+        }
     }
 
     function addMachineRow() {
@@ -274,24 +313,62 @@ $(document).ready(function() {
         `;
         $('#machineRows').append(tr);
     }
+    // 🟢 ฟังก์ชันอัปเดต Dropdown: ปิดไม่ให้เลือกเครื่องจักรซ้ำ
+    function updateMachineSelects() {
+        // 1. เก็บ ID เครื่องจักรทั้งหมดที่ถูก "เลือกไปแล้ว" ในทุกๆ แถว
+        let selectedValues = [];
+        $('.machine-select').each(function() {
+            let val = $(this).val();
+            if (val) selectedValues.push(val);
+        });
 
-    $('#formBranch').on('change', function() {
-        $('#machineRows').empty();
-        addMachineRow(); 
+        // 2. วนลูปเช็ค Dropdown ทีละแถว
+        $('.machine-select').each(function() {
+            let currentSelect = $(this);
+            let currentValue = currentSelect.val(); // ค่าของแถวตัวเอง
+
+            currentSelect.find('option').each(function() {
+                let optionValue = $(this).val();
+                if (!optionValue) return; // ข้ามตัวเลือก "-- เลือกเครื่องจักร --"
+
+                // ถ้าเครื่องจักรนี้อยู่ใน List ที่เลือกไปแล้ว "และ" ไม่ใช่ตัวที่แถวนี้กำลังเลือกอยู่
+                if (selectedValues.includes(optionValue) && optionValue !== currentValue) {
+                    // ให้ปิดการเลือก (เป็นสีเทา)
+                    $(this).prop('disabled', true);
+                } else {
+                    // แต่ถ้ายังไม่มีใครเลือก ให้เปิดให้กดได้ปกติ
+                    $(this).prop('disabled', false);
+                }
+            });
+        });
+    }
+    
+    $('#formBranch , #formDate').on('change', function() {
+        // ให้ทำงานเฉพาะตอนที่ Modal บันทึกข้อมูลเปิดอยู่เท่านั้น
+        if ($('#addTransModal').is(':visible')) {
+            fetchAndResetMachines();
+        }
     });
 
-    $('#btnAddRow').click(function() { addMachineRow(); });
+    $('#btnAddRow').click(function() { 
+        addMachineRow();
+        updateMachineSelects(); // 🟢 สั่งล็อกตัวเลือกทันทีที่เพิ่มแถว
+    });
 
     $(document).on('click', '.btn-remove-row', function() {
         if ($('#machineRows tr').length > 1) {
             $(this).closest('tr').remove();
+            updateMachineSelects(); // 🟢 สั่งคลายล็อกตัวเลือกหลังจากลบแถวทิ้ง
         } else {
             Swal.fire('คำเตือน', 'ต้องมีข้อมูลเครื่องจักรอย่างน้อย 1 รายการ', 'warning');
         }
     });
 
-    // 🟢 1. ตั้งค่าวางวันที่ปัจจุบันให้ช่องค้นหาตอนเปิดหน้าเว็บ
-    const todayStr = new Date().toISOString().split('T')[0];
+    // 🟢 1. ตั้งค่าวางวันที่ปัจจุบันให้ช่องค้นหาตอนเปิดหน้าเว็บ (แก้บั๊ก Timezone ประเทศไทย)
+    const localDate = new Date();
+    localDate.setMinutes(localDate.getMinutes() - localDate.getTimezoneOffset());
+    const todayStr = localDate.toISOString().split('T')[0];
+
     $('#searchStartDate').val(todayStr);
     $('#searchEndDate').val(todayStr);
 
@@ -307,9 +384,13 @@ $(document).ready(function() {
             if (response.status === 'success') {
                 let rows = '';
                 let mobileCards = ''; 
-
+                
                 response.data.forEach(t => {
                     let transData = encodeURIComponent(JSON.stringify(t));
+                    
+                    let actionBtns = '';
+                    if (PERM_CAN_EDIT) actionBtns += `<button class="btn btn-sm btn-warning btn-edit" data-info="${transData}"><i class="fas fa-pen"></i></button> `;
+                    if (PERM_CAN_DELETE) actionBtns += `<button class="btn btn-sm btn-danger btn-delete" data-id="${t.id}"><i class="fas fa-trash"></i></button>`;
                     
                     rows += `
                         <tr>
@@ -320,12 +401,14 @@ $(document).ready(function() {
                             <td class="text-center font-weight-bold text-success">${parseFloat(t.working_hours).toFixed(2)}</td>
                             <td class="text-center font-weight-bold text-danger">${parseFloat(t.breakdown_hours).toFixed(2)}</td>
                             <td><small class="text-muted">${t.remarks || '-'}</small></td>
-                            <td class="text-center" style="white-space: nowrap;">
-                                <button class="btn btn-sm btn-warning btn-edit" data-info="${transData}"><i class="fas fa-pen"></i></button>
-                                <button class="btn btn-sm btn-danger btn-delete" data-id="${t.id}"><i class="fas fa-trash"></i></button>
-                            </td>
-                        </tr>
                     `;
+                    if(HAS_ACTION_COLUMN) rows += `<td class="text-center" style="white-space: nowrap;">`;
+                    
+                    rows += actionBtns;
+
+                    if(HAS_ACTION_COLUMN) rows += `</td>`;
+                    
+                    rows += `</tr>`;
 
                     mobileCards += `
                         <div class="col-12 mb-3">
@@ -359,7 +442,7 @@ $(document).ready(function() {
                 
                 if ($.fn.DataTable.isDataTable('#transTable')) { $('#transTable').DataTable().clear().destroy(); }
                 $('#transTableBody').html(rows);
-                $('#transTable').DataTable({ language: { url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/th.json' }, order: [[0, 'desc']] });
+                $('#transTable').DataTable({ language: { url: '<%= baseUrl %>/json/datatable_th.json' }, order: [[0, 'desc']] });
                 $('#transListMobile').html(mobileCards || '<div class="col-12 text-center text-muted py-4">ไม่พบข้อมูล</div>');
             } else {
                 // 🟢 กรณี Backend ส่งสถานะ Error กลับมา
@@ -376,8 +459,11 @@ $(document).ready(function() {
     $('#btnAddTrans').click(function() {
         $('#addTransForm')[0].reset();
         document.getElementById('formDate').valueAsDate = new Date();
-        $('#formBranch').trigger('change'); 
+        // $('#formBranch').trigger('change'); 
         $('#addTransModal').modal('show');
+
+        // 🟢 เรียกฟังก์ชันดึงตัวเลือกที่ตัดของซ้ำแล้ว มาโชว์
+        fetchAndResetMachines();
     });
 
     $('#addTransForm').submit(function(e) {

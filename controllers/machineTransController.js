@@ -19,7 +19,12 @@ exports.machineTransPage = async (req, res) => {
         }
 
         const [branches] = await db.query(branchSql, branchParams);
-        const [machines] = await db.query('SELECT id, branch_id, machine_name, machine_type FROM machines WHERE is_active = 1');
+        const [machines] = await db.query(`
+            SELECT 
+                a.id, a.branch_id, a.machine_name, a.machine_type 
+            FROM machines a
+            WHERE a.is_active = 1
+        `);
 
         res.render('machine_trans', {
             title: 'บันทึกการทำงานเครื่องจักร',
@@ -78,6 +83,31 @@ exports.getTransactions = async (req, res) => {
 
     } catch (error) {
         console.error("Get Machine Trans Error:", error);
+        res.json({ status: 'error', message: 'ดึงข้อมูลไม่สำเร็จ' });
+    }
+};
+// 🟢 7. ดึงข้อมูลเครื่องจักรที่ถูกบันทึกไปแล้ว (เพื่อเอาไปตัดออกจากตัวเลือกตอนเพิ่มข้อมูล)
+exports.getExistingMachines = async (req, res) => {
+    try {
+        const { branch_id, record_date } = req.query;
+        
+        if (!branch_id || !record_date) {
+            return res.json({ status: 'success', data: [] });
+        }
+
+        const [rows] = await db.query(`
+            SELECT machine_id 
+            FROM machine_trans 
+            WHERE branch_id = ? AND record_date = ? AND status != 'cancelled'
+        `, [branch_id, record_date]);
+
+        // แปลงผลลัพธ์เป็น Array ของตัวเลข ID ล้วนๆ เช่น [1, 4, 7]
+        const existingIds = rows.map(r => r.machine_id);
+        
+        res.json({ status: 'success', data: existingIds });
+
+    } catch (error) {
+        console.error("Get Existing Machines Error:", error);
         res.json({ status: 'error', message: 'ดึงข้อมูลไม่สำเร็จ' });
     }
 };

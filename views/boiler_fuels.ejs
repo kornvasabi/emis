@@ -2,61 +2,64 @@
 <%- include('layouts/sidebar') %>
 <%- include('layouts/topbar') %>
 
-<div class="container-fluid">
-    <!-- Page Heading -->
-    <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0 text-gray-800"><i class="fas fa-fire"></i> บันทึกการใช้เชื้อเพลิงบอยเลอร์</h1>
-        <button class="btn btn-primary shadow-sm" id="btnAddTrans">
-            <i class="fas fa-plus fa-sm text-white-50"></i> บันทึกข้อมูลประจำวัน
-        </button>
-    </div>
-    
-    <!-- Filter วันที่ -->
-    <div class="card shadow mb-4">
-        <div class="card-body py-3">
-            <form id="searchForm" class="form-inline d-flex justify-content-center justify-content-md-start">
-                <label class="font-weight-bold mr-2">ตั้งแต่วันที่:</label>
-                <input type="date" class="form-control mr-3 mb-2 mb-md-0" id="searchStartDate" name="startDate">
-                
-                <label class="font-weight-bold mr-2">ถึงวันที่:</label>
-                <input type="date" class="form-control mr-3 mb-2 mb-md-0" id="searchEndDate" name="endDate">
-                
-                <button type="submit" class="btn btn-primary mb-2 mb-md-0"><i class="fas fa-search"></i> ค้นหา</button>
-            </form>
+<div class="my-custom-scroll">
+    <div class="container-fluid">
+        <!-- Page Heading -->
+        <div class="d-sm-flex align-items-center justify-content-between mb-4">
+            <h1 class="h3 mb-0 text-gray-800"><i class="fas fa-fire"></i> บันทึกการใช้เชื้อเพลิงบอยเลอร์</h1>
+            <button class="btn btn-primary shadow-sm" id="btnAddTrans">
+                <i class="fas fa-plus fa-sm text-white-50"></i> บันทึกข้อมูลประจำวัน
+            </button>
         </div>
-    </div>
-
-    <!-- ตารางข้อมูล (Desktop) -->
-    <div class="card shadow mb-4 border-left-primary d-none d-lg-block">
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-bordered table-hover" id="transTable" width="100%" cellspacing="0">
-                    <thead class="bg-light text-center">
-                        <tr>
-                            <th class="align-middle">วันที่</th>
-                            <th class="align-middle">สาขา</th>
-                            <th class="align-middle">บอยเลอร์</th>
-                            <th class="align-middle text-primary">ไอน้ำ (ตัน)</th>
-                            <th class="align-middle text-success">เชื้อเพลิง (ตัน)</th>
-                            <th class="align-middle text-info">บาท/ตันไอน้ำ</th>
-                            <th class="align-middle text-warning">ผลงาน (กก./ตันไอน้ำ)</th>
-                            <th class="align-middle text-danger">ผลต่าง (จาก STD)</th>
-                            <th class="align-middle">จัดการ</th>
-                        </tr>
-                    </thead>
-                    <tbody id="transTableBody"></tbody>
-                </table>
+        
+        <!-- Filter วันที่ -->
+        <div class="card shadow mb-4">
+            <div class="card-body py-3">
+                <form id="searchForm" class="form-inline d-flex justify-content-center justify-content-md-start">
+                    <label class="font-weight-bold mr-2">ตั้งแต่วันที่:</label>
+                    <input type="date" class="form-control mr-3 mb-2 mb-md-0" id="searchStartDate" name="startDate">
+                    
+                    <label class="font-weight-bold mr-2">ถึงวันที่:</label>
+                    <input type="date" class="form-control mr-3 mb-2 mb-md-0" id="searchEndDate" name="endDate">
+                    
+                    <button type="submit" class="btn btn-primary mb-2 mb-md-0"><i class="fas fa-search"></i> ค้นหา</button>
+                </form>
             </div>
         </div>
-    </div>
 
-    <!-- รายการข้อมูล (Mobile) -->
-    <div class="d-block d-lg-none">
-        <h6 class="font-weight-bold text-primary mb-3"><i class="fas fa-list"></i> รายการบันทึกทั้งหมด</h6>
-        <div class="row" id="transListMobile"></div>
+        <!-- ตารางข้อมูล (Desktop) -->
+        <div class="card shadow mb-4 border-left-primary d-none d-lg-block">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" id="transTable" width="100%" cellspacing="0">
+                        <thead class="bg-light text-center">
+                            <tr>
+                                <th class="align-middle">วันที่</th>
+                                <th class="align-middle">สาขา</th>
+                                <th class="align-middle">บอยเลอร์</th>
+                                <th class="align-middle text-primary">ไอน้ำ (ตัน)</th>
+                                <th class="align-middle text-success">เชื้อเพลิง (ตัน)</th>
+                                <th class="align-middle text-info">บาท/ตันไอน้ำ</th>
+                                <th class="align-middle text-warning">ผลงาน (กก./ตันไอน้ำ)</th>
+                                <th class="align-middle text-danger">ผลต่าง (จาก STD)</th>
+                                <th class="align-middle">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- รายการข้อมูล (Mobile) -->
+        <div class="d-block d-lg-none">
+            <h6 class="font-weight-bold text-primary mb-3"><i class="fas fa-list"></i> รายการบันทึกทั้งหมด</h6>
+            <div class="row" id="transListMobile"></div>
+        </div>
     </div>
 </div>
 
+<%- include('layouts/footer') %>
 <!-- ========================================== -->
 <!-- Modal เพิ่ม/แก้ไข ข้อมูล (ใช้โครงสร้างเดียวกัน) -->
 <!-- ========================================== -->
@@ -213,7 +216,7 @@
     </div>
 </div>
 
-<%- include('layouts/footer') %>
+
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
@@ -296,10 +299,10 @@ $(document).ready(function() {
         const startDate = $('#searchStartDate').val();
         const endDate = $('#searchEndDate').val();
 
-        Swal.fire({ title: 'กำลังโหลดข้อมูล...', showConfirmButton: false, didOpen: () => { Swal.showLoading(); } });
+        // Swal.fire({ title: 'กำลังโหลดข้อมูล...', showConfirmButton: false, didOpen: () => { Swal.showLoading(); } });
 
         $.get(`<%= baseUrl %>/api/boiler_fuels?startDate=${startDate}&endDate=${endDate}`, function(response) {
-            Swal.close();
+            // Swal.close();
             if (response.status === 'success') {
                 let rows = ''; let mobileCards = ''; 
                 

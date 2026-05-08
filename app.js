@@ -23,6 +23,8 @@ const fuelController = require('./controllers/fuelController'); // ดึง Con
 const boilerPressureController = require('./controllers/boilerPressureController'); //แรงดันไอน้ำปลายทางของบอยเลอร์
 const boilerFuelController = require('./controllers/boilerFuelController'); // ระบบการใช้เชื้อเพลิงบอยเลอร์
 
+const truckController = require('./controllers/truckController');
+
 // 🟢 3. โยน baseUrl เข้า app.locals เพื่อให้ทุกหน้า EJS เอาไปใช้ได้
 app.locals.baseUrl = baseUrl;
 
@@ -190,6 +192,11 @@ appRouter.get('/api/boiler_fuels', requireAuth, checkPermission, boilerFuelContr
 appRouter.post('/api/boiler_fuels/add', requireAuth, checkPermission, boilerFuelController.addTransaction);
 appRouter.post('/api/boiler_fuels/update/:id', requireAuth, checkPermission, boilerFuelController.updateTransaction);
 appRouter.post('/api/boiler_fuels/delete/:id', requireAuth, checkPermission, boilerFuelController.deleteTransaction);
+
+/*แก้ไขบัตรชั่ง*/
+appRouter.get('/truck_list', requireAuth, loadMenus, checkPermission, truckController.truckListPage);
+appRouter.post('/api/truck_list/search', requireAuth, checkPermission, truckController.searchTruckData);
+appRouter.post('/api/truck_list/update', requireAuth, checkPermission, truckController.updateTruckData);
 
 // ระบบ Import Excel
 const upload = multer({ storage: multer.memoryStorage() });

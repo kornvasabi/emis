@@ -1,0 +1,180 @@
+<%- include('layouts/header') %>
+<%- include('layouts/sidebar') %>
+<%- include('layouts/topbar') %>
+
+<div class="my-custom-scroll">
+    <div class="container-fluid">
+        <h1 class="h3 mb-4 text-gray-800"><i class="fas fa-truck"></i> ค้นหารายการชั่ง</h1>
+
+        <div class="card shadow mb-4">
+            <div class="card-header py-3"><h6 class="m-0 font-weight-bold text-primary">ตัวกรองค้นหา</h6></div>
+            <div class="card-body">
+                <form id="searchForm">
+                    <div class="form-row">
+                        <div class="col-md-3 mb-3">
+                            <label>เลือกสาขา <span class="text-danger">*</span></label>
+                            <select name="branch_id" id="branch_id" class="form-control" required>
+                                <option value="">-- เลือกสาขา --</option>
+                                <% branches.forEach(b => { %>
+                                    <option value="<%= b.id %>"><%= b.branch_name %></option>
+                                <% }) %>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label>เริ่มต้น (วัน-เวลา)</label>
+                            <input type="date" name="date_start" id="date_start" class="form-control" required>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label>สิ้นสุด (วัน-เวลา)</label>
+                            <input type="date" name="date_end" id="date_end" class="form-control" required>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label>Ticket No</label>
+                            <input type="text" name="ticket2" class="form-control" placeholder="T-1234">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> ค้นหาข้อมูล</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card shadow mb-4 d-none" id="resultCard">
+            <div class="card-header py-3"><h6 class="m-0 font-weight-bold text-success">ผลการค้นหา</h6></div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" id="dataTable" width="100%" cellspacing="0">
+                        <thead class="bg-light text-center">
+                            <tr>
+                                <th>ID</th><th>Ticket 2</th><th>In Date Time</th><th>Out Date Time</th><th>พิมพ์บัตร</th><th>จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div><%- include('layouts/footer') %>
+
+<div class="modal fade" id="editModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form id="editForm">
+                <div class="modal-header bg-gradient-warning text-dark">
+                    <h5 class="modal-title font-weight-bold"><i class="fas fa-edit"></i> แก้ไขข้อมูลจากสาขา</h5>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body p-4">
+                    <input type="hidden" name="branch_id" id="modal_branch_id">
+                    <input type="hidden" name="id" id="modal_id">
+                    
+                    <div class="alert alert-info">
+                        <strong>Ticket:</strong> <span id="modal_ticket_text"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="text-primary font-weight-bold">เวลาเข้า (In)</label>
+                        <input type="datetime-local" step="1" name="in_date_time" id="modal_in" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="text-danger font-weight-bold">เวลาออก (Out)</label>
+                        <input type="datetime-local" step="1" name="out_date_time" id="modal_out" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" id="modal_printed" name="is_printed" value="1">
+                            <label class="custom-control-label font-weight-bold" for="modal_printed">พิมพ์บัตรชั่งแล้ว</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">ปิด</button>
+                    <button type="submit" class="btn btn-warning"><i class="fas fa-save"></i> บันทึกการแก้ไข</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+$(document).ready(function() {
+    // เซ็ตวันที่เริ่มต้น
+    const todayStr = new Date().toISOString().split('T')[0];
+    $('#date_start').val(todayStr);
+    $('#date_end').val(todayStr);
+
+    let datatable = $('#dataTable').DataTable({ language: { url: '<%= baseUrl %>/json/datatable_th.json' }, order: [[0, 'desc']] });
+
+    // 🟢 1. ค้นหาข้อมูล (AJAX)
+    $('#searchForm').submit(function(e) {
+        e.preventDefault();
+        Swal.fire({ title: 'กำลังดึงข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+        $.post('<%= baseUrl %>/api/truck_list/search', $(this).serialize(), function(res) {
+            Swal.close();
+            if (res.status === 'success') {
+                $('#resultCard').removeClass('d-none');
+                datatable.clear();
+                
+                res.data.forEach(row => {
+                    let badge = row.is_printed == 1 ? '<span class="badge badge-success">พิมพ์แล้ว</span>' : '<span class="badge badge-secondary">ยังไม่พิมพ์</span>';
+                    // ยัด Object ข้อมูลลงในปุ่มเพื่อดึงมาใช้ตอนแก้
+                    let rowData = encodeURIComponent(JSON.stringify(row));
+                    let btn = `<button class="btn btn-sm btn-warning btn-edit" data-info="${rowData}"><i class="fas fa-edit"></i></button>`;
+
+                    datatable.row.add([
+                        row.id, row.ticket2, row.in_date_time, row.out_date_time, `<div class="text-center">${badge}</div>`, `<div class="text-center">${btn}</div>`
+                    ]);
+                });
+                datatable.draw();
+            } else {
+                Swal.fire('ข้อผิดพลาด', res.message, 'warning');
+            }
+        }).fail(() => Swal.fire('Error', 'ไม่สามารถเชื่อมต่อ API ได้', 'error'));
+    });
+
+    // 🟢 2. เปิด Modal แก้ไข
+    $(document).on('click', '.btn-edit', function() {
+        let data = JSON.parse(decodeURIComponent($(this).data('info')));
+        $('#modal_branch_id').val($('#branch_id').val()); // ดึงสาขาที่กำลังค้นหาอยู่
+        $('#modal_id').val(data.id);
+        $('#modal_ticket_text').text(data.ticket2);
+        
+        // แปลงรูปแบบวันที่ให้เข้ากับ input type="datetime-local" (YYYY-MM-DDTHH:mm:ss)
+        $('#modal_in').val(data.in_date_time.replace(' ', 'T'));
+        $('#modal_out').val(data.out_date_time ? data.out_date_time.replace(' ', 'T') : '');
+        
+        $('#modal_printed').prop('checked', data.is_printed == 1);
+        $('#editModal').modal('show');
+    });
+
+    // 🟢 3. บันทึกข้อมูล (AJAX)
+    $('#editForm').submit(function(e) {
+        e.preventDefault();
+        let btn = $(this).find('button[type="submit"]');
+        let originalText = btn.html();
+        btn.html('<i class="fas fa-spinner fa-spin"></i> กำลังอัปเดต...').prop('disabled', true);
+
+        // ดัก checkbox (ถ้าไม่ถูกติ๊ก ค่าจะไม่ถูกส่งไปกับ serialize() เลยต้องจัดการเอง)
+        let formData = $(this).serialize();
+        if (!$('#modal_printed').is(':checked')) formData += '&is_printed=0';
+
+        $.post('<%= baseUrl %>/api/truck_list/update', formData, function(res) {
+            if (res.status === 'success') {
+                Swal.fire({ icon: 'success', title: 'สำเร็จ', text: res.message, timer: 1500, showConfirmButton: false })
+                .then(() => {
+                    $('#editModal').modal('hide');
+                    // สั่งค้นหาข้อมูลใหม่ทันทีเพื่ออัปเดตตาราง
+                    $('#searchForm').submit(); 
+                });
+            } else {
+                Swal.fire('ข้อผิดพลาด', res.message, 'warning');
+            }
+        }).fail(() => Swal.fire('Error', 'เซิร์ฟเวอร์ขัดข้อง', 'error'))
+          .always(() => btn.html(originalText).prop('disabled', false));
+    });
+});
+</script>

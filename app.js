@@ -178,6 +178,8 @@ appRouter.get('/api/fuel_trans', requireAuth, checkPermission, fuelController.ge
 appRouter.post('/api/fuel_trans/add', requireAuth, checkPermission, fuelController.addTransactionBatch);
 appRouter.post('/api/fuel_trans/update/:id', requireAuth, checkPermission, fuelController.updateTransaction);
 appRouter.post('/api/fuel_trans/delete/:id', requireAuth, checkPermission, fuelController.deleteTransaction);
+appRouter.get('/api/fuel_trans/existing', requireAuth, checkPermission, fuelController.getExistingEngines);
+appRouter.get('/api/fuel_trans/report', requireAuth, checkPermission, fuelController.getFuelReport);
 
 // ระบบแรงดันไอน้ำบอยเลอร์
 appRouter.get('/boiler_pressures', requireAuth, loadMenus, checkPermission, boilerPressureController.boilerPressurePage);

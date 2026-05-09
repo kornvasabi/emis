@@ -209,3 +209,82 @@ exports.deleteTransaction = async (req, res) => {
         res.json({ status: 'error', message: 'ลบข้อมูลไม่สำเร็จ' });
     }
 };
+
+// 🟢 6. ดึงข้อมูลเครื่องยนต์ที่ถูกบันทึกไปแล้ว (เพื่อตัดออกจากตัวเลือก)
+exports.getExistingEngines = async (req, res) => {
+    try {
+        const { branch_id, transaction_date } = req.query;
+
+        if (!branch_id || !transaction_date) {
+            return res.json({ status: 'success', data: [] });
+        }
+
+        const [rows] = await db.query(`
+            SELECT engine_id 
+            FROM fuel_transactions 
+            WHERE branch_id = ? AND transaction_date = ? AND status != 'cancelled'
+        `, [branch_id, transaction_date]);
+
+        // ดึงเฉพาะ ID มาทำเป็น Array ตัวเลข [1, 5, 8]
+        const existingIds = rows.map(r => r.engine_id);
+        res.json({ status: 'success', data: existingIds });
+
+    } catch (error) {
+        console.error("Get Existing Engines Error:", error);
+        res.json({ status: 'error', message: 'ดึงข้อมูลไม่สำเร็จ' });
+    }
+};
+
+// 🟢 7. ระบบรายงาน (Pivot Report)
+exports.getFuelReport = async (req, res) => {
+    try {
+        const { branch_id, startDate, endDate } = req.query;
+        const accessLevel = req.currentPermission ? Number(req.currentPermission.access_level) : 3;
+        const userBranchId = req.session.user.branch_id;
+
+        // ตรวจสอบสิทธิ์สาขา
+        let targetBranch = branch_id;
+        if (accessLevel === 3) targetBranch = userBranchId; // Level 3 ดูได้แค่สาขาตัวเอง
+
+        if (!targetBranch) {
+            return res.json({ status: 'error', message: 'กรุณาระบุสาขา' });
+        }
+
+        // 1. ดึงข้อมูลรถ/เครื่องยนต์ที่มีการเติมน้ำมัน ในช่วงเวลาและสาขาที่เลือก
+        const sqlEngines = `
+            SELECT DISTINCT e.id, e.engine_code, et.type_name 
+            FROM fuel_transactions t
+            JOIN engines e ON t.engine_id = e.id
+            JOIN engine_types et ON e.engine_type_id = et.id
+            WHERE t.branch_id = ? AND t.transaction_date BETWEEN ? AND ? AND t.status != 'cancelled'
+            ORDER BY et.type_name, e.engine_code
+        `;
+        const [engines] = await db.query(sqlEngines, [targetBranch, startDate, endDate]);
+
+        // 2. ดึงข้อมูล Transaction ทั้งหมด
+        const sqlTrans = `
+            SELECT 
+                engine_id, 
+                transaction_date as raw_date,
+                DATE_FORMAT(transaction_date, '%Y-%m-%d') as record_date,
+                DATE_FORMAT(transaction_date, '%d/%m/%Y') as display_date,
+                DATE_FORMAT(transaction_date, '%d') as day_only,
+                fuel_liters, 
+                working_hours, 
+                consumption_rate
+            FROM fuel_transactions
+            WHERE branch_id = ? AND transaction_date BETWEEN ? AND ? AND status != 'cancelled'
+            ORDER BY transaction_date ASC
+        `;
+        const [transactions] = await db.query(sqlTrans, [targetBranch, startDate, endDate]);
+
+        res.json({ 
+            status: 'success', 
+            data: { engines, transactions } 
+        });
+
+    } catch (error) {
+        console.error("Get Fuel Report Error:", error);
+        res.json({ status: 'error', message: 'ดึงข้อมูลรายงานไม่สำเร็จ' });
+    }
+};

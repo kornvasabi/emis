@@ -23,6 +23,10 @@
                     <input type="date" class="form-control mr-3 mb-2 mb-md-0" id="searchEndDate" name="endDate">
                     
                     <button type="submit" class="btn btn-primary mb-2 mb-md-0"><i class="fas fa-search"></i> ค้นหา</button>
+                    
+                    <button type="button" class="btn btn-success mb-2 mb-md-0 ml-2" id="btnExportExcel">
+                        <i class="fas fa-file-excel"></i> Export Excel
+                    </button>
                 </form>
             </div>
         </div>
@@ -220,6 +224,7 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <!-- สคริปต์การทำงาน -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
@@ -454,5 +459,98 @@ $(document).ready(function() {
         });
     });
 
+    // ==========================================
+    // 🟢 ระบบ Export Excel (พร้อมตัดคอลัมน์ปุ่มทิ้ง & ใส่สีหัวตาราง)
+    // ==========================================
+    $('#btnExportExcel').click(function() {
+        if ($('#transTableBody').html().trim() === '') {
+            Swal.fire('คำเตือน', 'ไม่มีข้อมูลสำหรับ Export กรุณากดค้นหาก่อนครับ', 'warning');
+            return;
+        }
+
+        let startDate = $('#searchStartDate').val();
+        let endDate = $('#searchEndDate').val();
+        let fileName = `รายงานแรงดันไอน้ำ_${startDate}_ถึง_${endDate}.xlsx`;
+
+        // 1. 🚀 โคลน (Copy) ตารางเดิมมาพักไว้ เพื่อแอบลบคอลัมน์ "จัดการ" ทิ้ง
+        let tempTable = document.getElementById("transTable").cloneNode(true);
+        
+        // ลบหัวตาราง (th) คอลัมน์สุดท้ายของแถวแรก
+        let theadFirstRow = tempTable.querySelectorAll("thead tr")[0];
+        if(theadFirstRow) {
+            let ths = theadFirstRow.querySelectorAll("th");
+            if(ths.length > 0) ths[ths.length - 1].remove();
+        }
+
+        // ลบเนื้อหา (td) คอลัมน์สุดท้าย ของทุกๆ แถว
+        let tbodyRows = tempTable.querySelectorAll("tbody tr");
+        tbodyRows.forEach(row => {
+            let tds = row.querySelectorAll("td");
+            if(tds.length > 0) tds[tds.length - 1].remove();
+        });
+
+        // 2. 📝 แปลงตารางที่ลบปุ่มทิ้งแล้วเป็น Workbook
+        let wb = XLSX.utils.table_to_book(tempTable, { sheet: "Data" });
+        let ws = wb.Sheets["Data"];
+
+        // 3. 🎨 จัดฟอร์แมตเซลล์ (Font, เส้นขอบ, สีพื้นหลัง)
+        for (let cellAddress in ws) {
+            if (cellAddress[0] === '!') continue; 
+            let cell = ws[cellAddress];
+            let rowNum = parseInt(cellAddress.replace(/\D/g, ''));
+            let colLetter = cellAddress.replace(/\d/g, ''); // ดึงตัวอักษรคอลัมน์ เช่น A, B, C
+
+            let cellStyle = {
+                font: { name: "TH SarabunPSK", sz: 16 },
+                alignment: { vertical: "center", horizontal: "center" },
+                border: {
+                    top: { style: "thin", color: { rgb: "000000" } },
+                    bottom: { style: "thin", color: { rgb: "000000" } },
+                    left: { style: "thin", color: { rgb: "000000" } },
+                    right: { style: "thin", color: { rgb: "000000" } }
+                }
+            };
+
+            // ใส่สีให้หัวตาราง (แถวที่ 1 และ 2) ตามกลุ่มของคอลัมน์
+            if (rowNum <= 2) {
+                cellStyle.font.bold = true;
+                
+                // คอลัมน์ D, E = ตกทั้งหมด (แดง)
+                if (['D', 'E'].includes(colLetter)) {
+                    cellStyle.fill = { fgColor: { rgb: "F8D7DA" } }; 
+                } 
+                // คอลัมน์ F, G = ตกตาม PM (เหลือง)
+                else if (['F', 'G'].includes(colLetter)) {
+                    cellStyle.fill = { fgColor: { rgb: "FFF2CC" } }; 
+                } 
+                // คอลัมน์ H, I = ตกนอกเหนือ PM (ฟ้า)
+                else if (['H', 'I'].includes(colLetter)) {
+                    cellStyle.fill = { fgColor: { rgb: "D1ECF1" } }; 
+                } 
+                // คอลัมน์อื่นๆ (เทา)
+                else {
+                    cellStyle.fill = { fgColor: { rgb: "E2E3E5" } }; 
+                }
+            }
+
+            cell.s = cellStyle;
+        }
+
+        // ปรับความกว้างคอลัมน์ให้สวยงาม
+        let colWidths = [
+            { wch: 15 }, // A: วันที่
+            { wch: 15 }, // B: สาขา
+            { wch: 12 }, // C: จำนวนครั้ง
+            { wch: 10 }, { wch: 10 }, // D-E: ตกทั้งหมด
+            { wch: 10 }, { wch: 10 }, // F-G: ตาม PM
+            { wch: 10 }, { wch: 10 }, // H-I: นอก PM
+            { wch: 30 }, // J: หมายเหตุ
+            { wch: 20 }  // K: ผู้บันทึก
+        ]; 
+        ws['!cols'] = colWidths;
+
+        // 4. สั่งดาวน์โหลด
+        XLSX.writeFile(wb, fileName);
+    });
 });
 </script>
